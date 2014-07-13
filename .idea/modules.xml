@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/MongoDbContainer.iml" filepath="$PROJECT_DIR$/MongoDbContainer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mongodbcontainer.iml" filepath="$PROJECT_DIR$/mongodbcontainer.iml" />
     </modules>
   </component>
 </project>

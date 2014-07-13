@@ -19,3 +19,5 @@
  */
 package it.tylframework.addon;
 // TODO - sincronizzare il paging standard di Vaadin col paging di MongoDb
+// TODO - studiare come si fa un save con optimistic lock in MongoDb
+// TODO - Studiare se c'è modo di avere un ordine dei record per default in MongoDb

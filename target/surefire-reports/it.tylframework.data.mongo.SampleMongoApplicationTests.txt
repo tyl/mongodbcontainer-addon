@@ -1,0 +1,33 @@
+-------------------------------------------------------------------------------
+Test set: it.tylframework.data.mongo.SampleMongoApplicationTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.614 sec <<< FAILURE! - in it.tylframework.data.mongo.SampleMongoApplicationTests
+testDefaultSettings(it.tylframework.data.mongo.SampleMongoApplicationTests)  Time elapsed: 0.613 sec  <<< FAILURE!
+java.lang.AssertionError: Wrong output: 
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v1.0.2.RELEASE)
+
+2014-07-12 18:18:55.384  INFO 5740 --- [           main] i.t.data.mongo.SampleMongoApplication    : Starting SampleMongoApplication on mint-dell with PID 5740 (/home/marco/TylProject/MongoDbContainer/target/classes started by marco in /home/marco/TylProject/MongoDbContainer)
+2014-07-12 18:18:55.388  INFO 5740 --- [           main] s.c.a.AnnotationConfigApplicationContext : Refreshing org.springframework.context.annotation.AnnotationConfigApplicationContext@58f70a5: startup date [Sat Jul 12 18:18:55 CEST 2014]; root of context hierarchy
+2014-07-12 18:18:55.850  INFO 5740 --- [           main] o.s.j.e.a.AnnotationMBeanExporter        : Registering beans for JMX exposure on startup
+Customers found with findAll():
+-------------------------------
+Customer[id=53c15fefe4b050836f3f291d, firstName='Andrea', lastName='Novara']
+Customer[id=53c15fefe4b050836f3f291e, firstName='Edoardo', lastName='Vacchi']
+Customer[id=53c15fefe4b050836f3f291f, firstName='Marco', lastName='Pancotti']
+Customer[id=53c15fefe4b050836f3f2920, firstName='Alessandro', lastName='Mongelli']
+Customer[id=53c15fefe4b050836f3f2921, firstName='Michele', lastName='Sciabarra']
+Customer[id=53c15fefe4b050836f3f2922, firstName='Adriano', lastName='Marchetti']
+Customer[id=53c15fefe4b050836f3f2923, firstName='Luca', lastName='Buraggi']
+
+2014-07-12 18:18:55.915  INFO 5740 --- [           main] i.t.data.mongo.SampleMongoApplication    : Started SampleMongoApplication in 0.609 seconds (JVM running for 3.833)
+
+	at org.junit.Assert.fail(Assert.java:88)
+	at org.junit.Assert.assertTrue(Assert.java:41)
+	at it.tylframework.data.mongo.SampleMongoApplicationTests.testDefaultSettings(SampleMongoApplicationTests.java:49)
+

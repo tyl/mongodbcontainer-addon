@@ -1,0 +1,6 @@
+it/tylframework/addon/MongoDbContainer.class
+it/tylframework/data/mongo/SampleMongoApplication.class
+it/tylframework/addon/MongoDbQuery.class
+it/tylframework/data/mongo/CustomerRepository.class
+it/tylframework/addon/MongoDbQueryDefinition.class
+it/tylframework/data/mongo/Customer.class

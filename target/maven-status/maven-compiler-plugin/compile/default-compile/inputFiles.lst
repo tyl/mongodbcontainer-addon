@@ -1,0 +1,6 @@
+/home/marco/TylProject/MongoDbContainer/src/main/java/it/tylframework/data/mongo/Customer.java
+/home/marco/TylProject/MongoDbContainer/src/main/java/it/tylframework/data/mongo/CustomerRepository.java
+/home/marco/TylProject/MongoDbContainer/src/main/java/it/tylframework/addon/MongoDbQueryDefinition.java
+/home/marco/TylProject/MongoDbContainer/src/main/java/it/tylframework/addon/MongoDbQuery.java
+/home/marco/TylProject/MongoDbContainer/src/main/java/it/tylframework/addon/MongoDbContainer.java
+/home/marco/TylProject/MongoDbContainer/src/main/java/it/tylframework/data/mongo/SampleMongoApplication.java

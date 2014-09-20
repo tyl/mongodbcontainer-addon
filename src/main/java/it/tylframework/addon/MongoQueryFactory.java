@@ -16,6 +16,8 @@
 
 package it.tylframework.addon;
 
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.vaadin.addons.lazyquerycontainer.Query;
 import org.vaadin.addons.lazyquerycontainer.QueryDefinition;
@@ -26,7 +28,7 @@ import java.io.Serializable;
 /**
  * Created by marco on 12/07/14.
  */
-public class MongoDbQueryFactory implements QueryFactory, Serializable {
+public class MongoQueryFactory<E> implements QueryFactory, Serializable {
     /**
      * Java serialization version UID.
      */
@@ -37,15 +39,22 @@ public class MongoDbQueryFactory implements QueryFactory, Serializable {
      * @param entityManager the entity manager
      */
 
-    MongoRepository mongoRepository;
+    final MongoOperations mongoOps;
+    final Class<E> beanClass;
 
-    public MongoDbQueryFactory(final MongoRepository mongoRepository) {
-        this.mongoRepository = mongoRepository;
+    public MongoQueryFactory(final MongoOperations mongoOps, final Class<E> beanClass) {
+        this.mongoOps = mongoOps;
+        this.beanClass = beanClass;
     }
 
 
     @Override
     public Query constructQuery(QueryDefinition queryDefinition) {
-        return new MongoDbQuery((MongoDbQueryDefinition) queryDefinition, mongoRepository);
+        // TODO: unwrap the query definition and translate into the query
+        return new MongoQuery(mongoOps, toSpringQuery(queryDefinition), beanClass);
     }
-}
+
+    private org.springframework.data.mongodb.core.query.Query toSpringQuery(QueryDefinition qd) {
+        return new org.springframework.data.mongodb.core.query.Query();
+    }
+ }

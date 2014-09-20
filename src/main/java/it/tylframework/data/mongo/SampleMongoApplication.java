@@ -16,18 +16,12 @@
 
 package it.tylframework.data.mongo;
 
-import com.vaadin.data.Item;
-import com.vaadin.data.util.BeanItem;
-import it.tylframework.addon.MongoDbQuery;
-import it.tylframework.addon.MongoDbQueryDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 @Configuration
 @EnableAutoConfiguration

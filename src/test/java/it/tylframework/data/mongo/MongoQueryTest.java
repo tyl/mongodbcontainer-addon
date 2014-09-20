@@ -16,21 +16,26 @@
 
 package it.tylframework.data.mongo;
 
+import com.mongodb.Mongo;
 import com.vaadin.data.util.BeanItem;
-import it.tylframework.addon.MongoDbQuery;
-import it.tylframework.addon.MongoDbQueryDefinition;
+import it.tylframework.addon.MongoQuery;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.OutputCapture;
 import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.vaadin.addons.lazyquerycontainer.LazyQueryDefinition;
 
 import java.util.List;
 
+import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -38,32 +43,40 @@ import static org.junit.Assert.assertTrue;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = SampleMongoApplication.class)
-public class MongoDbQueryTest {
+public class MongoQueryTest {
 
     @Rule
     public OutputCapture outputCapture = new OutputCapture();
 
-    @Autowired
-    private CustomerRepository repository;
+    //@Autowired
+    private final MongoOperations mongoOps;
+
+    private final Class<Customer> beanClass = Customer.class;
+
+    public MongoQueryTest() throws Exception {
+        mongoOps = new MongoTemplate(new Mongo(), "database");
+
+    }
+
 
     @Before
-    public void setupDatabase(){
-        repository.deleteAll();
+    public void setupDatabase() throws Exception {
+        for (Customer c: mongoOps.findAll(Customer.class))
+            mongoOps.remove(c);
 
-        // save a couple of customers
-        repository.save(new Customer("Andrea", "Novara"));
-        repository.save(new Customer("Edoardo", "Vacchi"));
-        repository.save(new Customer("Marco", "Pancotti"));
-        repository.save(new Customer("Alessandro", "Mongelli"));
-        repository.save(new Customer("Michele", "Sciabarra"));
-        repository.save(new Customer("Adriano", "Marchetti"));
-        repository.save(new Customer("Luca", "Buraggi"));
+        // save some customers
+        mongoOps.save(new Customer("Andrea", "Novara"));
+        mongoOps.save(new Customer("Edoardo", "Vacchi"));
+        mongoOps.save(new Customer("Marco", "Pancotti"));
+        mongoOps.save(new Customer("Alessandro", "Mongelli"));
+        mongoOps.save(new Customer("Michele", "Sciabarra"));
+        mongoOps.save(new Customer("Adriano", "Marchetti"));
+        mongoOps.save(new Customer("Luca", "Buraggi"));
     }
 
     @Test
     public void testSize(){
-        MongoDbQueryDefinition mdqd = new MongoDbQueryDefinition(false, Customer.class, 20, Customer.class);
-        MongoDbQuery mdq = new MongoDbQuery<Customer>(mdqd,repository);
+        MongoQuery mdq = new MongoQuery<Customer>(mongoOps, new Query(), beanClass);
         System.out.println("Size del container="+mdq.size());
         String output = this.outputCapture.toString();
         assertTrue("Wrong output: " + output,
@@ -75,15 +88,14 @@ public class MongoDbQueryTest {
     public void testLoadItems() {
         System.out.println("Customers found with LazyBeanContainer():");
         System.out.println("-------------------------------");
-        MongoDbQueryDefinition mdqd = new MongoDbQueryDefinition(false, Customer.class, 20, Customer.class);
-        MongoDbQuery mdq = new MongoDbQuery<Customer>(mdqd, repository);
+        MongoQuery mdq = new MongoQuery<Customer>(mongoOps, new Query(), beanClass);
         List<BeanItem> l = mdq.loadItems(1, 3);
         for (BeanItem i : l) {
             Customer c = (Customer) i.getBean();
             System.out.println("Nome: " + c.getFirstName() + " " + c.getLastName());
         }
         String output = this.outputCapture.toString();
-        assertTrue("Wrong output: " + output,
-                output.contains("Nome: Michele Sciabarra"));
+        assertFalse("Wrong output: " + output,
+                output.contains("Nome: Michele Sciabarra")); // Sciabarra is fourth
     }
 }

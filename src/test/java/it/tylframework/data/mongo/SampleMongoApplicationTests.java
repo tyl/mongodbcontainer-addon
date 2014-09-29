@@ -18,10 +18,13 @@ package it.tylframework.data.mongo;
 
 import java.net.ConnectException;
 
+import org.bson.types.ObjectId;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.boot.test.OutputCapture;
 import org.springframework.core.NestedCheckedException;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import static org.junit.Assert.assertTrue;
 
@@ -32,8 +35,10 @@ import static org.junit.Assert.assertTrue;
  */
 public class SampleMongoApplicationTests {
 
+
 	@Rule
 	public OutputCapture outputCapture = new OutputCapture();
+
 
 	@Test
 	public void testDefaultSettings() throws Exception {

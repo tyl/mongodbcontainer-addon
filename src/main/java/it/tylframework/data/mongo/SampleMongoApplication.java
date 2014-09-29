@@ -16,12 +16,15 @@
 
 package it.tylframework.data.mongo;
 
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 
 @Configuration
 @EnableAutoConfiguration
@@ -31,27 +34,51 @@ public class SampleMongoApplication implements CommandLineRunner {
 	@Autowired
 	private CustomerRepository repository;
 
-	@Override
+    @Autowired
+    private PersonRepository personRepository;
+
+    @Autowired
+    private AddressRepository addressRepository;
+
+
+    @Override
 	public void run(String... args) throws Exception {
 
-		repository.deleteAll();
+		initRepository();
+        initPersonRepository();
+    }
 
-		// save a couple of customers
-		repository.save(new Customer("Andrea", "Novara"));
-		repository.save(new Customer("Edoardo", "Vacchi"));
+    public void initRepository() {
+        repository.deleteAll();
+
+        // save a couple of customers
+        repository.save(new Customer("Andrea", "Novara"));
+        repository.save(new Customer("Edoardo", "Vacchi"));
         repository.save(new Customer("Marco", "Pancotti"));
         repository.save(new Customer("Alessandro", "Mongelli"));
         repository.save(new Customer("Michele", "Sciabarra"));
         repository.save(new Customer("Adriano", "Marchetti"));
         repository.save(new Customer("Luca", "Buraggi"));
 
-		// fetch all customers
-		System.out.println("Customers found with findAll():");
-		System.out.println("-------------------------------");
-		for (Customer customer : repository.findAll()) {
-			System.out.println(customer);
-		}
-		System.out.println();
+        // fetch all customers
+        System.out.println("Customers found with findAll():");
+        System.out.println("-------------------------------");
+        for (Customer customer : repository.findAll()) {
+            System.out.println(customer);
+        }
+        System.out.println();
+    }
+
+    public void initPersonRepository() {
+//        Address addr = new Address("topolinia");
+//        addressRepository.save(addr);
+//        Person p = new Person("pippo", addr);
+//        personRepository.save(p);
+
+        Person p2 = personRepository.findByName("pippo");
+
+        System.out.println(p2);
+
 
     }
 

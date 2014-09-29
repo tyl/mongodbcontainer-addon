@@ -17,6 +17,7 @@
 package it.tylframework.data.mongo;
 
 import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
 import com.vaadin.data.util.BeanItem;
 import it.tylframework.addon.MongoQuery;
 import org.junit.Before;
@@ -50,11 +51,10 @@ public class MongoQueryTest {
 
     //@Autowired
     private final MongoOperations mongoOps;
-
     private final Class<Customer> beanClass = Customer.class;
 
     public MongoQueryTest() throws Exception {
-        mongoOps = new MongoTemplate(new Mongo(), "database");
+        mongoOps = new MongoTemplate(new MongoClient(), "database");
 
     }
 

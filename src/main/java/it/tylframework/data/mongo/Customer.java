@@ -16,25 +16,23 @@
 
 package it.tylframework.data.mongo;
 
+import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 
 public class Customer {
 
 	@Id
-	private String id;
+	private ObjectId id;
 
 	private String firstName;
 	private String lastName;
-
-	public Customer() {
-	}
 
 	public Customer(String firstName, String lastName) {
 		this.firstName = firstName;
 		this.lastName = lastName;
 	}
 
-    public String getId() {
+    public ObjectId getId() {
         return id;
     }
 

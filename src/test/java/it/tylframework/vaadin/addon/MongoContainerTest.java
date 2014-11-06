@@ -13,6 +13,7 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -61,30 +62,30 @@ public class MongoContainerTest {
 
     @Test
     public void testSize(){
-        assertEquals(mongoContainerBuilder.forQuery(new Query()).build().size(), 7);
+        assertEquals(mongoContainerBuilder.forCriteria(new Criteria()).build().size(), 7);
     }
 
-
-    @Test
-    public void testIdList() {
-        final MongoContainer<Customer,Serializable> mc = mongoContainerBuilder.forQuery(new Query()).build();
-        System.out.println(mc.getItemIds());
-        assertEquals(mc.getItemIds().size(), 7);
-    }
+//
+//    @Test
+//    public void testIdList() {
+//        final MongoContainer<Customer,Serializable> mc = mongoContainerBuilder.forCriteria(new Criteria()).build();
+//        System.out.println(mc.getItemIds());
+//        assertEquals(mc.getItemIds().size(), 7);
+//    }
 
     // fetch using Container
     @Test
     public void testLoadItems() {
 
-        final Query q = query(where("firstName").regex(".*d.*"));
+        final Criteria crit = where("firstName").regex(".*d.*");
 
         final MongoContainer<Customer,Serializable> mc =
                 mongoContainerBuilder
-                        .forQuery(q)
+                        .forCriteria(crit)
                         .build();
 
 
-        List<Customer> bs = mongoOps.find(q, beanClass);
+        List<Customer> bs = mongoOps.find(query(crit), beanClass);
 
         for (Customer c: bs) {
             System.out.println(c);

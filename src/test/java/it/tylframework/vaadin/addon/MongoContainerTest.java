@@ -7,6 +7,8 @@ import it.tylframework.addon.MongoQuery;
 import it.tylframework.data.mongo.Customer;
 import it.tylframework.data.mongo.SampleMongoApplication;
 import junit.framework.TestCase;
+import org.bson.types.ObjectId;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,8 +22,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import java.io.Serializable;
 import java.util.List;
 
-import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
@@ -35,20 +38,20 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 public class MongoContainerTest {
     private final MongoOperations mongoOps;
     private final Class<Customer> beanClass = Customer.class;
-    private final MongoContainer.Builder mongoContainerBuilder;
 
     public MongoContainerTest() throws Exception {
         this.mongoOps = new MongoTemplate(new MongoClient(), "database");
+    }
 
-        this.mongoContainerBuilder = MongoContainer.Builder.with(mongoOps)
-                .withBeanClass(beanClass)
-                .withIdClass(Serializable.class);
+    public MongoContainer.Builder builder() {
+
+        return MongoContainer.Builder.with(mongoOps)
+                .withBeanClass(beanClass);
+
     }
 
     @Before
     public void setupDatabase() throws Exception {
-        for (Customer c: mongoOps.findAll(Customer.class))
-            mongoOps.remove(c);
         // save some customers
         mongoOps.save(new Customer("Andrea", "Novara"));
         mongoOps.save(new Customer("Edoardo", "Vacchi"));
@@ -60,9 +63,17 @@ public class MongoContainerTest {
     }
 
 
+
+    @After
+    public void teardownDatabase() {
+        for (Customer c: mongoOps.findAll(Customer.class))
+            mongoOps.remove(c);
+    }
+
+
     @Test
     public void testSize(){
-        assertEquals(mongoContainerBuilder.forCriteria(new Criteria()).build().size(), 7);
+        assertEquals(builder().forCriteria(new Criteria()).build().size(), 7);
     }
 
 //
@@ -79,8 +90,8 @@ public class MongoContainerTest {
 
         final Criteria crit = where("firstName").regex(".*d.*");
 
-        final MongoContainer<Customer,Serializable> mc =
-                mongoContainerBuilder
+        final MongoContainer<ObjectId,Customer> mc =
+                builder()
                         .forCriteria(crit)
                         .build();
 
@@ -93,9 +104,34 @@ public class MongoContainerTest {
         }
 
         assertEquals(4, mc.size());
-
-
-
-
     }
+
+    @Test
+    public void testRemoveItem() {
+        final Criteria c = where("firstName").regex(".*d.*");
+        final MongoContainer<ObjectId,Customer> mc =
+                builder().forCriteria(c)
+                .build();
+
+        int initSize = mc.size();
+
+        ObjectId itemId = mc.firstItemId();
+        mc.removeItem(itemId);
+
+        assertNotEquals(itemId, mc.firstItemId());
+        assertNotEquals(initSize, mc.size());
+    }
+
+    @Test
+    public void testRemoveAllItems() {
+        final Criteria c = where("firstName").regex(".*d.*");
+        final MongoContainer<ObjectId,Customer> mc =
+                builder().forCriteria(c)
+                        .build();
+
+        mc.removeAllItems();
+
+        assertEquals(0, mc.size());
+    }
+
 }

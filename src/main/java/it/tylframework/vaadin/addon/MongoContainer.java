@@ -1,19 +1,13 @@
 package it.tylframework.vaadin.addon;
 
-import com.mongodb.DBObject;
-import com.sun.javaws.jnl.PropertyDesc;
 import com.vaadin.data.Container;
 import com.vaadin.data.Item;
 import com.vaadin.data.Property;
-
-import com.vaadin.data.util.AbstractContainer;
 import com.vaadin.data.util.BeanItem;
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-
 
 import java.beans.*;
 import java.util.*;
@@ -23,7 +17,7 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 /**
  * Created by evacchi on 26/09/14.
  */
-public class MongoContainer<Bean,Id>
+public class MongoContainer<Id, Bean>
         //extends AbstractContainer
         implements Container, Container.Ordered, Container.Indexed {
 
@@ -32,7 +26,7 @@ public class MongoContainer<Bean,Id>
         private final MongoOperations mongoOps;
         private Criteria mongoCriteria;
         private Class<?> beanClass;
-        private Class<?> idClass;
+        private Class<?> idClass = ObjectId.class;
         private Map<Object,Class<?>> ids = new HashMap<Object, Class<?>>();
 
         public static MongoContainer.Builder with(final MongoOperations mongoOps) {
@@ -53,8 +47,8 @@ public class MongoContainer<Bean,Id>
             return this;
         }
 
-        public Builder withIdClass(final Class<?> idClass) {
-            this.idClass = idClass;
+        public Builder withIdClassClass(final Class<?> idClass) {
+            this.beanClass = idClass;
             return this;
         }
 
@@ -63,8 +57,8 @@ public class MongoContainer<Bean,Id>
             return this;
         }
 
-        public <Bean,Id> MongoContainer<Bean,Id> build() {
-            MongoContainer<Bean,Id> mc = new MongoContainer<Bean,Id>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, (Class<Id>) idClass);
+        public <Id,Bean> MongoContainer<Id,Bean> build() {
+            MongoContainer<Id,Bean> mc = new MongoContainer<Id,Bean>(mongoCriteria, mongoOps, (Class<Id>) idClass, (Class<Bean>) beanClass);
             for (Object id: ids.keySet()) {
                 mc.addContainerProperty(id, ids.get(id), null);
             }
@@ -73,47 +67,34 @@ public class MongoContainer<Bean,Id>
 
     }
 
-    class BeanId {
-        @org.springframework.data.annotation.Id
-        private Object _id;
-    }
-
-
-    /*
-    public static <Bean,Id> MongoContainer<Bean,Id> forQuery(Query mongoQuery, Class<Bean> beanClass, Class<Id> idClass) {
-        return new MongoContainer(mongoQuery, beanClass, idClass);
-    }
-    */
-
     private static final String ID = "_id";
 
     private final Criteria criteria;
     private final Query query;
     private final MongoOperations mongoOps;
 
-    private final Class<Bean> beanClass;
     private final Class<Id> idClass;
+    private final Class<Bean> beanClass;
     private final BeanDescriptor beanDescriptor;
 
     private final LinkedHashMap<String, PropertyDescriptor> propertyDescriptorMap;
 
     private MongoContainer(final Criteria criteria,
                            final MongoOperations mongoOps,
-                           final Class<Bean> beanClass,
-                           final Class<Id> idClass) {
-
+                           final Class<Id> idClass,
+                           final Class<Bean> beanClass) {
         this.criteria = criteria;
         this.query = Query.query(criteria);
         this.mongoOps = mongoOps;
 
-        this.beanClass = beanClass;
         this.idClass = idClass;
+        this.beanClass = beanClass;
 
         this.beanDescriptor = getBeanDescriptor(beanClass);
         this.propertyDescriptorMap = getBeanPropertyDescriptor(beanClass);
     }
 
-    public BeanItem getItem(Object o) {
+    public BeanItem<Bean> getItem(Object o) {
         assertIdValid(o);
         final Bean document = mongoOps.findById(o, beanClass);
         return new BeanItem<Bean>(document);
@@ -127,6 +108,7 @@ public class MongoContainer<Bean,Id>
     }
 
     @Override
+    @Deprecated
     public List<Id> getItemIds() {
         throw new UnsupportedOperationException("this expensive operation is unsupported");
 //        Query q = Query.query(criteria).fields().include(ID);
@@ -135,7 +117,7 @@ public class MongoContainer<Bean,Id>
     }
 
     @Override
-    public Property getContainerProperty(Object itemId, Object propertyId) {
+    public Property<?> getContainerProperty(Object itemId, Object propertyId) {
         return getItem(itemId).getItemProperty(propertyId);
     }
 
@@ -146,6 +128,7 @@ public class MongoContainer<Bean,Id>
         return pd == null? null: pd.getPropertyType();
     }
 
+    @Override
     public int size() {
         return (int) mongoOps.count(query, beanClass);
     }
@@ -156,23 +139,24 @@ public class MongoContainer<Bean,Id>
     }
 
     @Override
-    public Item addItem(Object o) throws UnsupportedOperationException {
-        return null;
+    public BeanItem<Bean> addItem(Object itemId) throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("cannot addItem(); add directly to mongo");
     }
 
     @Override
-    public Object addItem() throws UnsupportedOperationException {
-        return null;
+    public Id addItem() throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("cannot addItem(); add directly to mongo");
     }
 
     @Override
-    public boolean removeItem(Object o) throws UnsupportedOperationException {
-        return false;
+    public boolean removeItem(Object itemId) throws UnsupportedOperationException {
+        mongoOps.findAndRemove(Query.query(where(ID).is(itemId)), beanClass);
+        return true;
     }
 
     @Override
     public boolean addContainerProperty(Object o, Class<?> aClass, Object o2) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("cannot add container property dynamically; use Builder");
     }
 
     @Override
@@ -182,7 +166,8 @@ public class MongoContainer<Bean,Id>
 
     @Override
     public boolean removeAllItems() throws UnsupportedOperationException {
-        return false;
+        mongoOps.remove(Query.query(criteria), beanClass);
+        return true;
     }
 
     @Override
@@ -192,7 +177,9 @@ public class MongoContainer<Bean,Id>
 
     @Override
     public Id getIdByIndex(int index) {
-        return getItemIds().get(index);
+        if (size() == 0) return null;
+        List<Id> idList = getItemIds(index, 1);
+        return idList.isEmpty()? null : idList.get(0);
     }
 
     @Override
@@ -226,14 +213,14 @@ public class MongoContainer<Bean,Id>
 
     @Override
     public Id firstItemId() {
-        List<Id> itemIds = getItemIds();
-        return itemIds.get(itemIds.indexOf(0));
+        return getIdByIndex(0);
     }
 
     @Override
     public Id lastItemId() {
-        List<Id> itemIds = getItemIds();
-        return itemIds.get(itemIds.indexOf(itemIds.size()-1));
+        return size() > 0 ?
+                 getIdByIndex(size()-1)
+               : null;
     }
     @Override
     public boolean isFirstId(Object itemId) {
@@ -261,8 +248,8 @@ public class MongoContainer<Bean,Id>
     private void assertIdValid(Object o) {
         if ( o == null )
             throw new NullPointerException("Id cannot be null");
-        if ( ! idClass.isInstance(o) )
-            throw new IllegalArgumentException("Id is not of the given type: "+o.getClass());
+        if ( o instanceof ObjectId ) // ! idClass.isInstance(o) )
+            throw new IllegalArgumentException("Id is not an ObjectId: "+o.getClass());
     }
 
     private static <T> BeanDescriptor getBeanDescriptor(Class<T> beanClass) {

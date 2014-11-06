@@ -6,6 +6,7 @@ import com.vaadin.data.util.BeanItem;
 import it.tylframework.addon.MongoQuery;
 import it.tylframework.data.mongo.Customer;
 import it.tylframework.data.mongo.SampleMongoApplication;
+import junit.framework.Assert;
 import junit.framework.TestCase;
 import org.bson.types.ObjectId;
 import org.junit.After;
@@ -73,9 +74,30 @@ public class MongoContainerTest {
 
     @Test
     public void testSize(){
-        assertEquals(builder().forCriteria(new Criteria()).build().size(), 7);
+        assertEquals(builder().build().size(), 7);
     }
 
+    @Test
+    public void firstItem() {
+        MongoContainer<ObjectId, Customer> mc = builder().build();
+        ObjectId firstId = mc.firstItemId();
+        BeanItem<Customer> item = mc.getItem(firstId);
+        Customer c = item.getBean();
+        assertEquals("Andrea", c.getFirstName());
+        assertTrue(mc.isFirstId(firstId));
+        assertFalse(mc.isLastId(firstId));
+    }
+
+    @Test
+    public void lastItem() {
+        MongoContainer<ObjectId, Customer> mc = builder().build();
+        ObjectId lastId = mc.lastItemId();
+        BeanItem<Customer> item = mc.getItem(lastId);
+        Customer c = item.getBean();
+        assertEquals("Luca", c.getFirstName());
+        assertFalse(mc.isFirstId(lastId));
+        assertTrue(mc.isLastId(lastId));
+    }
 //
 //    @Test
 //    public void testIdList() {

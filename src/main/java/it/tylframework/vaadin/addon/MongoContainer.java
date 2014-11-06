@@ -24,7 +24,7 @@ public class MongoContainer<Id, Bean>
 
     public static class Builder {
         private final MongoOperations mongoOps;
-        private Criteria mongoCriteria;
+        private Criteria mongoCriteria = new Criteria();
         private Class<?> beanClass;
         private Class<?> idClass = ObjectId.class;
         private Map<Object,Class<?>> ids = new HashMap<Object, Class<?>>();
@@ -248,8 +248,8 @@ public class MongoContainer<Id, Bean>
     private void assertIdValid(Object o) {
         if ( o == null )
             throw new NullPointerException("Id cannot be null");
-        if ( o instanceof ObjectId ) // ! idClass.isInstance(o) )
-            throw new IllegalArgumentException("Id is not an ObjectId: "+o.getClass());
+        if ( ! idClass.isInstance(o) )
+            throw new IllegalArgumentException("Id is not instance of " +idClass +": "+o);
     }
 
     private static <T> BeanDescriptor getBeanDescriptor(Class<T> beanClass) {

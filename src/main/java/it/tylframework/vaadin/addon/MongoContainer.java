@@ -1,13 +1,19 @@
 package it.tylframework.vaadin.addon;
 
+import com.mongodb.DBObject;
+import com.sun.javaws.jnl.PropertyDesc;
 import com.vaadin.data.Container;
 import com.vaadin.data.Item;
 import com.vaadin.data.Property;
 
+import com.vaadin.data.util.AbstractContainer;
 import com.vaadin.data.util.BeanItem;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.BasicQuery;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+
 
 import java.beans.*;
 import java.util.*;
@@ -17,13 +23,14 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 /**
  * Created by evacchi on 26/09/14.
  */
-public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Container.Indexed {
-
+public class MongoContainer<Bean,Id>
+        //extends AbstractContainer
+        implements Container, Container.Ordered, Container.Indexed {
 
 
     public static class Builder {
         private final MongoOperations mongoOps;
-        private Query mongoQuery;
+        private Criteria mongoCriteria;
         private Class<?> beanClass;
         private Class<?> idClass;
         private Map<Object,Class<?>> ids = new HashMap<Object, Class<?>>();
@@ -36,8 +43,8 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
             this.mongoOps = mongoOps;
         }
 
-        public Builder forQuery(final Query mongoQuery) {
-            this.mongoQuery = mongoQuery;
+        public Builder forCriteria(final Criteria mongoCriteria) {
+            this.mongoCriteria = mongoCriteria;
             return this;
         }
 
@@ -57,13 +64,18 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
         }
 
         public <Bean,Id> MongoContainer<Bean,Id> build() {
-            MongoContainer<Bean,Id> mc = new MongoContainer<Bean,Id>(mongoQuery, mongoOps, (Class<Bean>) beanClass, (Class<Id>) idClass);
+            MongoContainer<Bean,Id> mc = new MongoContainer<Bean,Id>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, (Class<Id>) idClass);
             for (Object id: ids.keySet()) {
                 mc.addContainerProperty(id, ids.get(id), null);
             }
             return mc;
         }
 
+    }
+
+    class BeanId {
+        @org.springframework.data.annotation.Id
+        private Object _id;
     }
 
 
@@ -73,7 +85,9 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
     }
     */
 
+    private static final String ID = "_id";
 
+    private final Criteria criteria;
     private final Query query;
     private final MongoOperations mongoOps;
 
@@ -81,25 +95,24 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
     private final Class<Id> idClass;
     private final BeanDescriptor beanDescriptor;
 
+    private final LinkedHashMap<String, PropertyDescriptor> propertyDescriptorMap;
 
-    private MongoContainer(final Query query,
+    private MongoContainer(final Criteria criteria,
                            final MongoOperations mongoOps,
                            final Class<Bean> beanClass,
                            final Class<Id> idClass) {
 
-        this.query     = query;
-        this.mongoOps  = mongoOps;
+        this.criteria = criteria;
+        this.query = Query.query(criteria);
+        this.mongoOps = mongoOps;
 
         this.beanClass = beanClass;
-        this.idClass   = idClass;
+        this.idClass = idClass;
 
         this.beanDescriptor = getBeanDescriptor(beanClass);
-
+        this.propertyDescriptorMap = getBeanPropertyDescriptor(beanClass);
     }
 
-    public Query getQuery() { return query; }
-
-    @Override
     public BeanItem getItem(Object o) {
         assertIdValid(o);
         final Bean document = mongoOps.findById(o, beanClass);
@@ -115,20 +128,22 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
 
     @Override
     public List<Id> getItemIds() {
-        query.fields().include("_id");
-        List<Bean> beans = mongoOps.find(query, beanClass);
-        return new PropertyList<Id,Bean>(beans, beanDescriptor, "id");
+        throw new UnsupportedOperationException("this expensive operation is unsupported");
+//        Query q = Query.query(criteria).fields().include(ID);
+//        List<BeanId> beans = mongoOps.find(q, beanClass);
+//        return new PropertyList<Id,Bean>(beans, beanDescriptor, "id");
     }
 
     @Override
-    public Property getContainerProperty(Object o, Object o2) {
-        return null;
+    public Property getContainerProperty(Object itemId, Object propertyId) {
+        return getItem(itemId).getItemProperty(propertyId);
     }
 
     // return the data type of the given property id
     @Override
-    public Class<?> getType(Object o) {
-        return null;
+    public Class<?> getType(Object propertyId) {
+        PropertyDescriptor pd = propertyDescriptorMap.get(propertyId);
+        return pd == null? null: pd.getPropertyType();
     }
 
     public int size() {
@@ -136,8 +151,8 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
     }
 
     @Override
-    public boolean containsId(Object o) {
-        return mongoOps.exists(Query.query(where("_id").is(o)), beanClass);
+    public boolean containsId(Object itemId) {
+        return mongoOps.exists(Query.query(where(ID).is(itemId)), beanClass);
     }
 
     @Override
@@ -172,10 +187,7 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
 
     @Override
     public int indexOfId(Object itemId) {
-        assertIdValid(itemId);
-        List<Bean> beans = mongoOps.find(query, beanClass);
-        List<Id> ids = new PropertyList<Id,Bean>(beans, beanDescriptor, "id");
-        return ids.indexOf(itemId);
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -185,7 +197,7 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
 
     @Override
     public List<Id> getItemIds(int startIndex, int numberOfItems) {
-        List<Bean> beans = mongoOps.find(query.skip(startIndex).limit(numberOfItems), beanClass);
+        List<Bean> beans = mongoOps.find(Query.query(criteria).skip(startIndex).limit(numberOfItems), beanClass);
         List<Id> ids = new PropertyList<Id,Bean>(beans, beanDescriptor, "id");
         return ids;
     }
@@ -203,7 +215,7 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
     @Override
     public Id nextItemId(Object itemId) {
         List<Id> itemIds = getItemIds();
-        return itemIds.get(itemIds.indexOf(itemId)+1);
+        return itemIds.get(itemIds.indexOf(itemId) + 1);
     }
 
     @Override
@@ -259,37 +271,42 @@ public class MongoContainer<Bean,Id> implements Container, Container.Ordered, Co
         } catch (Exception ex) { throw new Error(ex); }
     }
 
-    private static List<PropertyDescriptor> getBeanPropertyDescriptor(
-            final Class<?> beanClass) throws IntrospectionException {
-        // Oracle bug 4275879: Introspector does not consider superinterfaces of
-        // an interface
-        if (beanClass.isInterface()) {
-            List<PropertyDescriptor> propertyDescriptors = new ArrayList<PropertyDescriptor>();
+    private static LinkedHashMap<String, PropertyDescriptor> getBeanPropertyDescriptor(
+            final Class<?> beanClass) {
 
-            for (Class<?> cls : beanClass.getInterfaces()) {
-                propertyDescriptors.addAll(getBeanPropertyDescriptor(cls));
+        try {
+
+            LinkedHashMap<String, PropertyDescriptor> propertyDescriptorMap =
+                new LinkedHashMap<String, PropertyDescriptor>();
+
+            if (beanClass.isInterface()) {
+
+                for (Class<?> cls : beanClass.getInterfaces()) {
+                    propertyDescriptorMap.putAll(getBeanPropertyDescriptor(cls));
+                }
+
+                BeanInfo info = Introspector.getBeanInfo(beanClass);
+                for (PropertyDescriptor pd: info.getPropertyDescriptors()) {
+                    propertyDescriptorMap.put(pd.getName(), pd);
+                }
+
+            } else {
+                BeanInfo info = Introspector.getBeanInfo(beanClass);
+                for (PropertyDescriptor pd: info.getPropertyDescriptors()) {
+                    propertyDescriptorMap.put(pd.getName(), pd);
+                }
             }
 
-            BeanInfo info = Introspector.getBeanInfo(beanClass);
-            propertyDescriptors.addAll(Arrays.asList(info
-                    .getPropertyDescriptors()));
+            return propertyDescriptorMap;
+        } catch (Exception ex) { throw new Error(ex); }
 
-            return propertyDescriptors;
-        } else {
-            BeanInfo info = Introspector.getBeanInfo(beanClass);
-            return Arrays.asList(info.getPropertyDescriptors());
-        }
     }
 
-    private static List<Object> getVaadinPropertyIds(final Class<?> beanClass) throws IntrospectionException {
-        List<PropertyDescriptor> propDescrs = getBeanPropertyDescriptor(beanClass);
-        List<Object> propertyIds = new ArrayList<Object>();
+    private static Set<?> getVaadinPropertyIds(final Class<?> beanClass) throws IntrospectionException {
+        LinkedHashMap<String,PropertyDescriptor> propDescrs = getBeanPropertyDescriptor(beanClass);
 
-        for (PropertyDescriptor p: propDescrs) {
-            propertyIds.add(p.getName());
-        }
 
-        return Collections.unmodifiableList(propertyIds);
+        return Collections.unmodifiableSet(propDescrs.entrySet());
     }
 
 }

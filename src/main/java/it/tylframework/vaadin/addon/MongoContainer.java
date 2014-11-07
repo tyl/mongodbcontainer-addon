@@ -402,7 +402,8 @@ public class MongoContainer<Bean>
         LinkedHashMap<String,PropertyDescriptor> propDescrs = getBeanPropertyDescriptor(beanClass);
 
 
-        return Collections.unmodifiableSet(propDescrs.entrySet());
+        return Collections.unmodifiableSet(propDescrs.keySet()
+        );
     }
 
     protected Field getIdField(Bean target) {

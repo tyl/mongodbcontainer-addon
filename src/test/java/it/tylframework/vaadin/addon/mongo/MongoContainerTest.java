@@ -67,6 +67,13 @@ public class MongoContainerTest {
             mongoOps.remove(c);
     }
 
+    @Test
+    public void testProperties() {
+        System.out.println("propids"+builder().build().getContainerPropertyIds());
+        assertNotEquals(0, builder().build().getContainerPropertyIds());
+    }
+
+
 
     @Test
     public void testSize(){

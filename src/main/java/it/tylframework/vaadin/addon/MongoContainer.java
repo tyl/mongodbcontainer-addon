@@ -19,9 +19,11 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.beans.*;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.logging.Logger;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
@@ -34,11 +36,15 @@ public class MongoContainer<Bean>
 
 
     public static class Builder {
+
+        private final static int DEFAULT_PAGE_SIZE = 100;
+
+
         private final MongoOperations mongoOps;
         private Criteria mongoCriteria = new Criteria();
         private Class<?> beanClass;
-        private Class<?> idClass = ObjectId.class;
         private boolean buffered = false;
+        private int pageSize = DEFAULT_PAGE_SIZE;
         private Map<Object,Class<?>> ids = new HashMap<Object, Class<?>>();
 
         public static MongoContainer.Builder with(final MongoOperations mongoOps) {
@@ -59,6 +65,11 @@ public class MongoContainer<Bean>
             return this;
         }
 
+        public Builder withPageSize(final int pageSize) {
+            this.pageSize = pageSize;
+            return this;
+        }
+
         public Builder withProperty(Object id, Class<?> type) {
             ids.put(id, type);
             return this;
@@ -72,9 +83,9 @@ public class MongoContainer<Bean>
         public <Bean> MongoContainer<Bean> build() {
             MongoContainer<Bean> mc;
             if (buffered) {
-                mc = new BufferedMongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass);
+                mc = new BufferedMongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
             } else {
-                mc = new MongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass);
+                mc = new MongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
             }
             for (Object id: ids.keySet()) {
                 mc.addContainerProperty(id, ids.get(id), null);
@@ -84,11 +95,13 @@ public class MongoContainer<Bean>
 
     }
 
-    private final static int DEFAULT_PAGE_SIZE = 100;
+    protected static final String ID = "_id";
+    protected static final Logger log = Logger.getLogger("MongoContainer");
+
 
     @Nonnull private Page<ObjectId> page;
+    protected final int pageSize;
 
-    protected static final String ID = "_id";
 
     protected final Criteria criteria;
     protected final Query query;
@@ -101,7 +114,8 @@ public class MongoContainer<Bean>
 
     MongoContainer(final Criteria criteria,
                            final MongoOperations mongoOps,
-                           final Class<Bean> beanClass) {
+                           final Class<Bean> beanClass,
+                           final int pageSize) {
         this.criteria = criteria;
         this.query = Query.query(criteria);
         this.mongoOps = mongoOps;
@@ -111,12 +125,13 @@ public class MongoContainer<Bean>
         this.beanDescriptor = getBeanDescriptor(beanClass);
         this.propertyDescriptorMap = getBeanPropertyDescriptor(beanClass);
 
-        fetchPage(0, DEFAULT_PAGE_SIZE);
+        this.pageSize = pageSize;
+
+        fetchPage(0, pageSize);
     }
 
-    private void fetchPage(int offset, int pageSize) {
-        Page<ObjectId> newPage = new Page<ObjectId>(pageSize, offset, this.size());
 
+    private DBCursor cursor() {
         DBObject criteriaObject = criteria.getCriteriaObject();
         DBObject projectionObject = new BasicDBObject(ID, true);
 
@@ -125,15 +140,22 @@ public class MongoContainer<Bean>
 
         // TODO: keep cursor around to possibly reuse
         DBCursor cursor = dbCollection.find(criteriaObject, projectionObject);
+        return cursor;
+    }
 
-        for (int i = 0; i < offset; i++) {
-            cursor.next();
-        }
+    private DBCursor cursorInRange(int skip, int limit) {
+        return cursor().skip(skip).limit(limit);
+    }
 
-        for (int i = offset; i < pageSize && cursor.hasNext(); i++) {
-            DBObject value = cursor.next();
-            newPage.set(i, (ObjectId) value.get("_id"));
-        }
+    private void fetchPage(int offset, int pageSize) {
+
+        // TODO: keep cursor around to possibly reuse
+        DBCursor cursor = cursorInRange(offset, pageSize);
+
+        Page<ObjectId> newPage = new Page<ObjectId>(pageSize, offset, this.size());
+
+        for (int i = offset; cursor.hasNext(); i++)
+            newPage.set(i, (ObjectId) cursor.next().get(ID));
 
         this.page = newPage;
     }
@@ -197,7 +219,7 @@ public class MongoContainer<Bean>
                 "cannot addItem(); insert() into mongo or build a buffered container");
     }
 
-    public ObjectId addDocument(Bean target) {
+    public ObjectId addEntity(Bean target) {
         mongoOps.insert(target);
         try {
             return (ObjectId) getIdField(target).get(target);
@@ -231,14 +253,32 @@ public class MongoContainer<Bean>
 
     @Override
     public int indexOfId(Object itemId) {
-        throw new UnsupportedOperationException();
+        ObjectId oid = assertIdValid(itemId);
+
+        // for the principle of locality,
+        // let us optimistically first check within the page
+        int index = page.indexOf(oid);
+        if (index > -1) return index;
+
+        // otherwise, linearly scan the entire collection using a cursor
+        // and only fetch the ids
+        DBCursor cur = cursor();
+        for (int i = 0; cur.hasNext(); i++) {
+            // skip the check for those already in the page
+            if (i >= page.offset && i < page.maxIndex) continue;
+            if (cur.next().get(ID).equals(itemId)) return i;
+        }
+        return -1;
     }
 
     @Override
+    @Nullable
     public ObjectId getIdByIndex(int index) {
         if (size() == 0) return null;
-        List<ObjectId> idList = getItemIds(index, 1);
-        return idList.isEmpty()? null : idList.get(0);
+        DBCursor cur = cursorInRange(index, 1);
+        return cur.hasNext()?
+                (ObjectId)cur.next().get(ID)
+                : null;
     }
 
     @Override
@@ -246,8 +286,9 @@ public class MongoContainer<Bean>
         //List<BeanId> beans = mongoOps.find(Query.query(criteria).skip(startIndex).limit(numberOfItems), BeanId.class);
         //List<ObjectId> ids = new PropertyList<ObjectId,BeanId>(beans, beanIdDescriptor, "_id");
 
-        if (!page.isInvalid() && startIndex >= page.offset && numberOfItems <= page.pageSize) {
-            return this.page.toImmutableList().subList(startIndex, startIndex+numberOfItems);
+        if (page.isValid() && page.isWithinRange(startIndex, numberOfItems)) {
+            List<ObjectId> idList = this.page.toImmutableList(); // indexed from 0, as required by the interface contract
+            return idList.subList(startIndex-page.offset, numberOfItems); // return the requested range
         }
 
         fetchPage(startIndex, numberOfItems);
@@ -267,14 +308,14 @@ public class MongoContainer<Bean>
 
     @Override
     public ObjectId nextItemId(Object itemId) {
-        List<ObjectId> itemIds = getItemIds();
-        return itemIds.get(itemIds.indexOf(itemId) + 1);
+        int index = indexOfId(itemId);
+        return getIdByIndex(index+1);
     }
 
     @Override
     public ObjectId prevItemId(Object itemId) {
-        List<ObjectId> itemIds = getItemIds();
-        return itemIds.get(itemIds.indexOf(itemId)-1);
+        int index = indexOfId(itemId);
+        return getIdByIndex(index - 1);
     }
 
     @Override
@@ -311,11 +352,13 @@ public class MongoContainer<Bean>
     }
 
 
-    private void assertIdValid(Object o) {
+    private ObjectId assertIdValid(Object o) {
         if ( o == null )
             throw new NullPointerException("Id cannot be null");
         if ( ! ( o instanceof ObjectId ) )
             throw new IllegalArgumentException("Id is not instance of ObjectId: "+o);
+
+        return (ObjectId) o;
     }
 
     private static <T> BeanDescriptor getBeanDescriptor(Class<T> beanClass) {

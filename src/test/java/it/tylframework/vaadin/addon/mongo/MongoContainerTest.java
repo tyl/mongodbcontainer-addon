@@ -1,14 +1,11 @@
 package it.tylframework.vaadin.addon.mongo;
 
-import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.vaadin.data.util.BeanItem;
-import it.tylframework.addon.MongoQuery;
 import it.tylframework.data.mongo.Customer;
 import it.tylframework.data.mongo.SampleMongoApplication;
 import it.tylframework.vaadin.addon.MongoContainer;
 
-import junit.framework.Assert;
 import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Before;
@@ -21,7 +18,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.Serializable;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -47,7 +43,8 @@ public class MongoContainerTest {
 
     public MongoContainer.Builder builder() {
         return MongoContainer.Builder.with(mongoOps)
-                .withBeanClass(beanClass);
+                .withBeanClass(beanClass)
+                .withPageSize(3);
     }
 
     @Before
@@ -98,12 +95,16 @@ public class MongoContainerTest {
         assertTrue(mc.isLastId(lastId));
     }
 
-//    @Test
-//    public void testIdList() {
-//        final MongoContainer<Customer,Serializable> mc = mongoContainerBuilder.forCriteria(new Criteria()).build();
-//        System.out.println(mc.getItemIds());
-//        assertEquals(mc.getItemIds().size(), 7);
-//    }
+    @Test
+    public void testIndexOf() {
+        final MongoContainer<Customer> mc = builder().build();
+
+        ObjectId id = mc.getIdByIndex(5);
+        Customer ev = mongoOps.findOne(query(where("firstName").is("Adriano")), Customer.class);
+                System.out.println(ev);
+                assertEquals(ev.getId(), id);
+
+    }
 
     // fetch using Container
     @Test
@@ -159,13 +160,22 @@ public class MongoContainerTest {
     public void testAddItem() {
         final MongoContainer<Customer> mc = builder().build();
         final Customer apancotti = new Customer("Andrea", "Pancotti");
-        mc.addDocument(apancotti);
+        mc.addEntity(apancotti);
         assertFalse(
             mongoOps.find(
                 Query.query(
                    where("firstName").is("Andrea")
                     .and("lastName") .is("Pancotti")), Customer.class).isEmpty()
         );
+    }
+
+    @Test
+    public void testRange() {
+        final MongoContainer<Customer> mc = builder().build();
+        assertEquals(1, mc.getItemIds(0, 1).size());
+        assertEquals(1, mc.getItemIds(mc.size() - 1, 1).size());
+        assertEquals(3, mc.getItemIds(3, 3).size());
+
     }
 
 }

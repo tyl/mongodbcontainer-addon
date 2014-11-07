@@ -6,11 +6,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 
-import javax.xml.transform.Source;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 
 /**
  * Created by evacchi on 06/11/14.
@@ -22,8 +18,8 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
     private final LinkedHashMap<ObjectId,BeanItem<Bean>> updatedItems = new LinkedHashMap<ObjectId, BeanItem<Bean>>();
     private final LinkedHashMap<ObjectId,BeanItem<Bean>> removedItems = new LinkedHashMap<ObjectId, BeanItem<Bean>>();
 
-    BufferedMongoContainer(Criteria criteria, MongoOperations mongoOps, Class<Bean> beanClass) {
-        super(criteria, mongoOps, beanClass);
+    BufferedMongoContainer(Criteria criteria, MongoOperations mongoOps, Class<Bean> beanClass, int pageSize) {
+        super(criteria, mongoOps, beanClass, pageSize);
     }
 
     @Override
@@ -108,7 +104,7 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
         try {
 
             Bean bean   = beanClass.newInstance();
-            return this.addDocument(bean);
+            return this.addEntity(bean);
 
         } catch (InstantiationException ex) {
             throw new UnsupportedOperationException(
@@ -121,7 +117,7 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
     }
 
     @Override
-    public ObjectId addDocument(Bean target) {
+    public ObjectId addEntity(Bean target) {
         BeanItem<Bean> beanItem = new BeanItem<Bean>(target);
         ObjectId id = injectId(target);
         newItems.put(id, beanItem);

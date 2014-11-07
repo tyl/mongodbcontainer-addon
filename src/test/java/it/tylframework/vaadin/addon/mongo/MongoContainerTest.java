@@ -1,4 +1,4 @@
-package it.tylframework.vaadin.addon;
+package it.tylframework.vaadin.addon.mongo;
 
 import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
@@ -6,8 +6,9 @@ import com.vaadin.data.util.BeanItem;
 import it.tylframework.addon.MongoQuery;
 import it.tylframework.data.mongo.Customer;
 import it.tylframework.data.mongo.SampleMongoApplication;
+import it.tylframework.vaadin.addon.MongoContainer;
+
 import junit.framework.Assert;
-import junit.framework.TestCase;
 import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Before;
@@ -45,10 +46,8 @@ public class MongoContainerTest {
     }
 
     public MongoContainer.Builder builder() {
-
         return MongoContainer.Builder.with(mongoOps)
                 .withBeanClass(beanClass);
-
     }
 
     @Before
@@ -79,7 +78,7 @@ public class MongoContainerTest {
 
     @Test
     public void firstItem() {
-        MongoContainer<ObjectId, Customer> mc = builder().build();
+        MongoContainer<Customer> mc = builder().build();
         ObjectId firstId = mc.firstItemId();
         BeanItem<Customer> item = mc.getItem(firstId);
         Customer c = item.getBean();
@@ -90,7 +89,7 @@ public class MongoContainerTest {
 
     @Test
     public void lastItem() {
-        MongoContainer<ObjectId, Customer> mc = builder().build();
+        MongoContainer<Customer> mc = builder().build();
         ObjectId lastId = mc.lastItemId();
         BeanItem<Customer> item = mc.getItem(lastId);
         Customer c = item.getBean();
@@ -98,7 +97,7 @@ public class MongoContainerTest {
         assertFalse(mc.isFirstId(lastId));
         assertTrue(mc.isLastId(lastId));
     }
-//
+
 //    @Test
 //    public void testIdList() {
 //        final MongoContainer<Customer,Serializable> mc = mongoContainerBuilder.forCriteria(new Criteria()).build();
@@ -112,7 +111,7 @@ public class MongoContainerTest {
 
         final Criteria crit = where("firstName").regex(".*d.*");
 
-        final MongoContainer<ObjectId,Customer> mc =
+        final MongoContainer<Customer> mc =
                 builder()
                         .forCriteria(crit)
                         .build();
@@ -131,7 +130,7 @@ public class MongoContainerTest {
     @Test
     public void testRemoveItem() {
         final Criteria c = where("firstName").regex(".*d.*");
-        final MongoContainer<ObjectId,Customer> mc =
+        final MongoContainer<Customer> mc =
                 builder().forCriteria(c)
                 .build();
 
@@ -147,13 +146,26 @@ public class MongoContainerTest {
     @Test
     public void testRemoveAllItems() {
         final Criteria c = where("firstName").regex(".*d.*");
-        final MongoContainer<ObjectId,Customer> mc =
+        final MongoContainer<Customer> mc =
                 builder().forCriteria(c)
                         .build();
 
         mc.removeAllItems();
 
         assertEquals(0, mc.size());
+    }
+
+    @Test
+    public void testAddItem() {
+        final MongoContainer<Customer> mc = builder().build();
+        final Customer apancotti = new Customer("Andrea", "Pancotti");
+        mc.addDocument(apancotti);
+        assertFalse(
+            mongoOps.find(
+                Query.query(
+                   where("firstName").is("Andrea")
+                    .and("lastName") .is("Pancotti")), Customer.class).isEmpty()
+        );
     }
 
 }

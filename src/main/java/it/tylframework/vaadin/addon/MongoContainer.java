@@ -1,15 +1,26 @@
 package it.tylframework.vaadin.addon;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.vaadin.data.Container;
 import com.vaadin.data.Item;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItem;
+import it.tylframework.vaadin.addon.utils.Page;
 import org.bson.types.ObjectId;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.mapping.MongoPersistentEntity;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
+import javax.annotation.Nonnull;
 import java.beans.*;
+import java.lang.reflect.Field;
 import java.util.*;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
@@ -17,7 +28,7 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 /**
  * Created by evacchi on 26/09/14.
  */
-public class MongoContainer<Id, Bean>
+public class MongoContainer<Bean>
         //extends AbstractContainer
         implements Container, Container.Ordered, Container.Indexed {
 
@@ -27,6 +38,7 @@ public class MongoContainer<Id, Bean>
         private Criteria mongoCriteria = new Criteria();
         private Class<?> beanClass;
         private Class<?> idClass = ObjectId.class;
+        private boolean buffered = false;
         private Map<Object,Class<?>> ids = new HashMap<Object, Class<?>>();
 
         public static MongoContainer.Builder with(final MongoOperations mongoOps) {
@@ -47,18 +59,23 @@ public class MongoContainer<Id, Bean>
             return this;
         }
 
-        public Builder withIdClassClass(final Class<?> idClass) {
-            this.beanClass = idClass;
-            return this;
-        }
-
         public Builder withProperty(Object id, Class<?> type) {
             ids.put(id, type);
             return this;
         }
 
-        public <Id,Bean> MongoContainer<Id,Bean> build() {
-            MongoContainer<Id,Bean> mc = new MongoContainer<Id,Bean>(mongoCriteria, mongoOps, (Class<Id>) idClass, (Class<Bean>) beanClass);
+        public Builder buffered() {
+            this.buffered = true;
+            return this;
+        }
+
+        public <Bean> MongoContainer<Bean> build() {
+            MongoContainer<Bean> mc;
+            if (buffered) {
+                mc = new BufferedMongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass);
+            } else {
+                mc = new MongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass);
+            }
             for (Object id: ids.keySet()) {
                 mc.addContainerProperty(id, ids.get(id), null);
             }
@@ -67,32 +84,62 @@ public class MongoContainer<Id, Bean>
 
     }
 
-    private static final String ID = "_id";
+    private final static int DEFAULT_PAGE_SIZE = 100;
 
-    private final Criteria criteria;
-    private final Query query;
-    private final MongoOperations mongoOps;
+    @Nonnull private Page<ObjectId> page;
 
-    private final Class<Id> idClass;
-    private final Class<Bean> beanClass;
-    private final BeanDescriptor beanDescriptor;
+    protected static final String ID = "_id";
 
-    private final LinkedHashMap<String, PropertyDescriptor> propertyDescriptorMap;
+    protected final Criteria criteria;
+    protected final Query query;
+    protected final MongoOperations mongoOps;
 
-    private MongoContainer(final Criteria criteria,
+    protected final Class<Bean> beanClass;
+    protected final BeanDescriptor beanDescriptor;
+
+    protected final LinkedHashMap<String, PropertyDescriptor> propertyDescriptorMap;
+
+    MongoContainer(final Criteria criteria,
                            final MongoOperations mongoOps,
-                           final Class<Id> idClass,
                            final Class<Bean> beanClass) {
         this.criteria = criteria;
         this.query = Query.query(criteria);
         this.mongoOps = mongoOps;
 
-        this.idClass = idClass;
         this.beanClass = beanClass;
 
         this.beanDescriptor = getBeanDescriptor(beanClass);
         this.propertyDescriptorMap = getBeanPropertyDescriptor(beanClass);
+
+        fetchPage(0, DEFAULT_PAGE_SIZE);
     }
+
+    private void fetchPage(int offset, int pageSize) {
+        Page<ObjectId> newPage = new Page<ObjectId>(pageSize, offset, this.size());
+
+        DBObject criteriaObject = criteria.getCriteriaObject();
+        DBObject projectionObject = new BasicDBObject(ID, true);
+
+        String collectionName = mongoOps.getCollectionName(beanClass);
+        DBCollection dbCollection = mongoOps.getCollection(collectionName);
+
+        // TODO: keep cursor around to possibly reuse
+        DBCursor cursor = dbCollection.find(criteriaObject, projectionObject);
+
+        for (int i = 0; i < offset; i++) {
+            cursor.next();
+        }
+
+        for (int i = offset; i < pageSize && cursor.hasNext(); i++) {
+            DBObject value = cursor.next();
+            newPage.set(i, (ObjectId) value.get("_id"));
+        }
+
+        this.page = newPage;
+    }
+
+    static class BeanId { @Id public ObjectId _id; }
+    BeanDescriptor beanIdDescriptor = getBeanDescriptor(BeanId.class);
 
     public BeanItem<Bean> getItem(Object o) {
         assertIdValid(o);
@@ -109,7 +156,7 @@ public class MongoContainer<Id, Bean>
 
     @Override
     @Deprecated
-    public List<Id> getItemIds() {
+    public List<ObjectId> getItemIds() {
         throw new UnsupportedOperationException("this expensive operation is unsupported");
 //        Query q = Query.query(criteria).fields().include(ID);
 //        List<BeanId> beans = mongoOps.find(q, beanClass);
@@ -140,17 +187,29 @@ public class MongoContainer<Id, Bean>
 
     @Override
     public BeanItem<Bean> addItem(Object itemId) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("cannot addItem(); add directly to mongo");
+        throw new UnsupportedOperationException(
+                "cannot addItem(); insert() into mongo or build a buffered container");
     }
 
     @Override
-    public Id addItem() throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("cannot addItem(); add directly to mongo");
+    public ObjectId addItem() throws UnsupportedOperationException {
+        throw new UnsupportedOperationException(
+                "cannot addItem(); insert() into mongo or build a buffered container");
+    }
+
+    public ObjectId addDocument(Bean target) {
+        mongoOps.insert(target);
+        try {
+            return (ObjectId) getIdField(target).get(target);
+        } catch (IllegalAccessException ex) {
+            throw new UnsupportedOperationException(ex);
+        }
     }
 
     @Override
     public boolean removeItem(Object itemId) throws UnsupportedOperationException {
         mongoOps.findAndRemove(Query.query(where(ID).is(itemId)), beanClass);
+        page.setInvalid();
         return true;
     }
 
@@ -176,17 +235,24 @@ public class MongoContainer<Id, Bean>
     }
 
     @Override
-    public Id getIdByIndex(int index) {
+    public ObjectId getIdByIndex(int index) {
         if (size() == 0) return null;
-        List<Id> idList = getItemIds(index, 1);
+        List<ObjectId> idList = getItemIds(index, 1);
         return idList.isEmpty()? null : idList.get(0);
     }
 
     @Override
-    public List<Id> getItemIds(int startIndex, int numberOfItems) {
-        List<Bean> beans = mongoOps.find(Query.query(criteria).skip(startIndex).limit(numberOfItems), beanClass);
-        List<Id> ids = new PropertyList<Id,Bean>(beans, beanDescriptor, "id");
-        return ids;
+    public List<ObjectId> getItemIds(int startIndex, int numberOfItems) {
+        //List<BeanId> beans = mongoOps.find(Query.query(criteria).skip(startIndex).limit(numberOfItems), BeanId.class);
+        //List<ObjectId> ids = new PropertyList<ObjectId,BeanId>(beans, beanIdDescriptor, "_id");
+
+        if (!page.isInvalid() && startIndex >= page.offset && numberOfItems <= page.pageSize) {
+            return this.page.toImmutableList().subList(startIndex, startIndex+numberOfItems);
+        }
+
+        fetchPage(startIndex, numberOfItems);
+
+        return this.page.toImmutableList();
     }
 
     @Override
@@ -200,24 +266,24 @@ public class MongoContainer<Id, Bean>
     }
 
     @Override
-    public Id nextItemId(Object itemId) {
-        List<Id> itemIds = getItemIds();
+    public ObjectId nextItemId(Object itemId) {
+        List<ObjectId> itemIds = getItemIds();
         return itemIds.get(itemIds.indexOf(itemId) + 1);
     }
 
     @Override
-    public Id prevItemId(Object itemId) {
-        List<Id> itemIds = getItemIds();
+    public ObjectId prevItemId(Object itemId) {
+        List<ObjectId> itemIds = getItemIds();
         return itemIds.get(itemIds.indexOf(itemId)-1);
     }
 
     @Override
-    public Id firstItemId() {
+    public ObjectId firstItemId() {
         return getIdByIndex(0);
     }
 
     @Override
-    public Id lastItemId() {
+    public ObjectId lastItemId() {
         return size() > 0 ?
                  getIdByIndex(size()-1)
                : null;
@@ -248,8 +314,8 @@ public class MongoContainer<Id, Bean>
     private void assertIdValid(Object o) {
         if ( o == null )
             throw new NullPointerException("Id cannot be null");
-        if ( ! idClass.isInstance(o) )
-            throw new IllegalArgumentException("Id is not instance of " +idClass +": "+o);
+        if ( ! ( o instanceof ObjectId ) )
+            throw new IllegalArgumentException("Id is not instance of ObjectId: "+o);
     }
 
     private static <T> BeanDescriptor getBeanDescriptor(Class<T> beanClass) {
@@ -296,4 +362,26 @@ public class MongoContainer<Id, Bean>
         return Collections.unmodifiableSet(propDescrs.entrySet());
     }
 
+    protected Field getIdField(Bean target) {
+        for (Field f : beanClass.getDeclaredFields()) {
+            System.out.println(f);
+            if (f.isAnnotationPresent(org.springframework.data.annotation.Id.class)) {
+                f.setAccessible(true);
+                return f;
+            }
+        }
+        throw new UnsupportedOperationException("no id field was found");
+    }
+
+    /*
+    String getCollectionName(@Nonnull Class<?> beanClass) {
+        MongoPersistentEntity<?> persistentEntity = mongoOps.getConverter().getMappingContext().getPersistentEntity(beanClass);
+        if (persistentEntity == null) {
+            throw new IllegalArgumentException(
+                    "Cannot find collection for the given class"
+                    + beanClass.getName());
+        }
+        return persistentEntity.getCollection();
+    }
+    */
 }

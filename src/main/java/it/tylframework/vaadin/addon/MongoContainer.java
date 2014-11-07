@@ -400,10 +400,7 @@ public class MongoContainer<Bean>
 
     private static Set<?> getVaadinPropertyIds(final Class<?> beanClass) throws IntrospectionException {
         LinkedHashMap<String,PropertyDescriptor> propDescrs = getBeanPropertyDescriptor(beanClass);
-
-
-        return Collections.unmodifiableSet(propDescrs.keySet()
-        );
+        return Collections.unmodifiableSet(propDescrs.keySet());
     }
 
     protected Field getIdField(Bean target) {

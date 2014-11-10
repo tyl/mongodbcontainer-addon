@@ -3,7 +3,6 @@ package it.tylframework.vaadin.addon.mongo;
 import com.mongodb.MongoClient;
 import com.vaadin.data.util.BeanItem;
 import it.tylframework.data.mongo.Customer;
-import it.tylframework.data.mongo.SampleMongoApplication;
 import it.tylframework.vaadin.addon.MongoContainer;
 
 import org.bson.types.ObjectId;
@@ -11,12 +10,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.List;
 
@@ -30,8 +27,8 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 /**
  * Created by evacchi on 26/09/14.
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = SampleMongoApplication.class)
+//@RunWith(SpringJUnit4ClassRunner.class)
+//@SpringApplicationConfiguration(classes = SampleMongoApplication.class)
 
 public class MongoContainerTest {
     private final MongoOperations mongoOps;

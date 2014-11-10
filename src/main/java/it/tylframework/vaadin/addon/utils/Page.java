@@ -68,6 +68,14 @@ public class Page<T> {
     }
 
     public boolean isWithinRange(int startIndex, int numberOfItems) {
-        return startIndex >= this.offset && (startIndex + numberOfItems) <= this.pageSize;
+        return startIndex >= this.offset
+                //&& numberOfItems <= this.pageSize
+                && startIndex + numberOfItems <= this.size;
     }
+
+    public List<T> subList(int startIndex, int numberOfItems) {
+        List<T> idList = this.toImmutableList(); // indexed from 0, as required by the interface contract
+        return idList.subList(startIndex-offset, numberOfItems);
+    }
+
 }

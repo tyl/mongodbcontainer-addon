@@ -7,6 +7,7 @@ import com.mongodb.DBObject;
 import com.vaadin.data.Container;
 import com.vaadin.data.Item;
 import com.vaadin.data.Property;
+import com.vaadin.data.util.AbstractContainer;
 import com.vaadin.data.util.BeanItem;
 import it.tylframework.vaadin.addon.utils.Page;
 import org.bson.types.ObjectId;
@@ -31,8 +32,9 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
  * Created by evacchi on 26/09/14.
  */
 public class MongoContainer<Bean>
-        //extends AbstractContainer
-        implements Container, Container.Ordered, Container.Indexed {
+        extends AbstractContainer
+        implements Container, Container.Ordered, Container.Indexed,
+        Container.ItemSetChangeNotifier {
 
 
     public static class Builder {
@@ -231,7 +233,7 @@ public class MongoContainer<Bean>
     @Override
     public boolean removeItem(Object itemId) throws UnsupportedOperationException {
         mongoOps.findAndRemove(Query.query(where(ID).is(itemId)), beanClass);
-        page.setInvalid();
+        fireItemSetChange();
         return true;
     }
 
@@ -285,10 +287,9 @@ public class MongoContainer<Bean>
     public List<ObjectId> getItemIds(int startIndex, int numberOfItems) {
         //List<BeanId> beans = mongoOps.find(Query.query(criteria).skip(startIndex).limit(numberOfItems), BeanId.class);
         //List<ObjectId> ids = new PropertyList<ObjectId,BeanId>(beans, beanIdDescriptor, "_id");
-
+        log.info(String.format("range: [%d,%d]", startIndex, numberOfItems));
         if (page.isValid() && page.isWithinRange(startIndex, numberOfItems)) {
-            List<ObjectId> idList = this.page.toImmutableList(); // indexed from 0, as required by the interface contract
-            return idList.subList(startIndex-page.offset, numberOfItems); // return the requested range
+            ; // return the requested range
         }
 
         fetchPage(startIndex, numberOfItems);
@@ -351,6 +352,31 @@ public class MongoContainer<Bean>
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void addItemSetChangeListener(ItemSetChangeListener listener) {
+        super.addItemSetChangeListener(listener);
+    }
+
+    @Override
+    public void addListener(ItemSetChangeListener listener) {
+        super.addListener(listener);
+    }
+
+    @Override
+    public void removeItemSetChangeListener(ItemSetChangeListener listener) {
+        super.removeItemSetChangeListener(listener);
+    }
+
+    @Override
+    public void removeListener(ItemSetChangeListener listener) {
+        super.removeListener(listener);
+    }
+
+    @Override
+    protected void fireItemSetChange() {
+        page.setInvalid();
+        super.fireItemSetChange();
+    }
 
     private ObjectId assertIdValid(Object o) {
         if ( o == null )
@@ -392,6 +418,9 @@ public class MongoContainer<Bean>
                     propertyDescriptorMap.put(pd.getName(), pd);
                 }
             }
+
+            // obj.getClass() is not really a getter
+            propertyDescriptorMap.remove("class");
 
             return propertyDescriptorMap;
         } catch (Exception ex) { throw new Error(ex); }

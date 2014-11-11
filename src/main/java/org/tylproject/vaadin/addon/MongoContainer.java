@@ -42,7 +42,6 @@ public class MongoContainer<Bean>
         private final MongoOperations mongoOps;
         private Criteria mongoCriteria = new Criteria();
         private Class<?> beanClass;
-        private boolean buffered = false;
         private int pageSize = DEFAULT_PAGE_SIZE;
         private Map<Object,Class<?>> ids = new HashMap<Object, Class<?>>();
 
@@ -74,21 +73,14 @@ public class MongoContainer<Bean>
             return this;
         }
 
-        public Builder buffered() {
-            this.buffered = true;
-            return this;
+        public <Bean> BufferedMongoContainer<Bean> buildBuffered() {
+            BufferedMongoContainer<Bean> mc = new BufferedMongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
+            return mc;
         }
 
+
         public <Bean> MongoContainer<Bean> build() {
-            MongoContainer<Bean> mc;
-            if (buffered) {
-                mc = new BufferedMongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
-            } else {
-                mc = new MongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
-            }
-            for (Object id: ids.keySet()) {
-                mc.addContainerProperty(id, ids.get(id), null);
-            }
+            MongoContainer<Bean> mc= new MongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
             return mc;
         }
 
@@ -375,7 +367,16 @@ public class MongoContainer<Bean>
         super.fireItemSetChange();
     }
 
-    private ObjectId assertIdValid(Object o) {
+    /**
+     * Verifies that the given Object instance is a valid itemId
+     *
+     * Note: This should generally be done through type-checking of the parameter
+     * but this is not possible because of Vaadin's interfaces
+     *
+     * @throws java.lang.NullPointerException if the parameter is null
+     * @throws java.lang.IllegalArgumentException if the parameter is not an ObjectId
+     */
+    protected ObjectId assertIdValid(Object o) {
         if ( o == null )
             throw new NullPointerException("Id cannot be null");
         if ( ! ( o instanceof ObjectId ) )

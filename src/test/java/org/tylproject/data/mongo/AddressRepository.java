@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-package it.tylframework.data.mongo;
+package org.tylproject.data.mongo;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import java.util.List;
-
-public interface PersonRepository extends MongoRepository<Person, String> {
-
-	public Person findByName(String name);
-
+public interface AddressRepository extends MongoRepository<Address, String> {
 }

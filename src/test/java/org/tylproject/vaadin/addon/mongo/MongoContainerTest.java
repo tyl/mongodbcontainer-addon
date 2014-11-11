@@ -1,15 +1,14 @@
-package it.tylframework.vaadin.addon.mongo;
+package org.tylproject.vaadin.addon.mongo;
 
 import com.mongodb.MongoClient;
 import com.vaadin.data.util.BeanItem;
-import it.tylframework.data.mongo.Customer;
-import it.tylframework.vaadin.addon.MongoContainer;
+import org.tylproject.data.mongo.Customer;
+import org.tylproject.vaadin.addon.MongoContainer;
 
 import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;

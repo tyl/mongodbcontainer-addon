@@ -6,6 +6,7 @@ import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 
 /**
@@ -93,6 +94,24 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
                || !removedItems.isEmpty();
     }
 
+    @Override
+    public BeanItem<Bean> getItem(Object itemId) {
+        ObjectId id = assertIdValid(itemId);
+
+        // if the internal buffers are not empty,
+        // first check there
+        if (this.isModified()) {
+            for (LinkedHashMap<ObjectId, BeanItem<Bean>> temporaryStorage :
+                    Arrays.asList(newItems, updatedItems, removedItems)) {
+                if (temporaryStorage.containsKey(id))
+                    return temporaryStorage.get(id);
+            }
+        }
+
+        // otherwise, just return the item with the usual strategy
+        return super.getItem(itemId);
+    }
+
 
     @Override
     public BeanItem<Bean> addItem(Object itemId) throws UnsupportedOperationException {
@@ -101,19 +120,7 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
 
     @Override
     public ObjectId addItem() throws UnsupportedOperationException {
-        try {
-
-            Bean bean   = beanClass.newInstance();
-            return this.addEntity(bean);
-
-        } catch (InstantiationException ex) {
-            throw new UnsupportedOperationException(
-                    "the given id or bean class cannot be instantiated.", ex);
-        } catch (IllegalAccessException ex) {
-            throw new UnsupportedOperationException(
-                    "the given id or bean class or its nullary constructor " +
-                            "is not accessible.", ex);
-        }
+        return this.addEntity(newBeanInstance());
     }
 
     @Override
@@ -124,6 +131,12 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
         return id;
     }
 
+    /**
+     * attempts to inject a new {@see ObjectId} instance in
+     * the field annotated with @Id
+     * @param target
+     * @return the injected id
+     */
     protected ObjectId injectId(Bean target) {
         try {
             ObjectId id = new ObjectId();
@@ -131,4 +144,18 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
             return id;
         } catch (IllegalAccessException ex) { throw new UnsupportedOperationException(ex); }
     }
+
+    protected Bean newBeanInstance() {
+        try {
+            return beanClass.newInstance();
+        } catch (InstantiationException ex) {
+            throw new UnsupportedOperationException(
+                    "the given id or bean class cannot be instantiated.", ex);
+        } catch (IllegalAccessException ex) {
+            throw new UnsupportedOperationException(
+                    "the given id or bean class or its nullary constructor " +
+                            "is not accessible.", ex);
+        }
+    }
+
 }

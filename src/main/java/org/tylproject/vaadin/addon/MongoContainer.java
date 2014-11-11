@@ -1,4 +1,4 @@
-package it.tylframework.vaadin.addon;
+package org.tylproject.vaadin.addon;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -9,13 +9,10 @@ import com.vaadin.data.Item;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.AbstractContainer;
 import com.vaadin.data.util.BeanItem;
-import it.tylframework.vaadin.addon.utils.Page;
+import org.tylproject.vaadin.addon.utils.Page;
 import org.bson.types.ObjectId;
-import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.mapping.MongoPersistentEntity;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
@@ -434,7 +431,6 @@ public class MongoContainer<Bean>
 
     protected Field getIdField(Bean target) {
         for (Field f : beanClass.getDeclaredFields()) {
-            System.out.println(f);
             if (f.isAnnotationPresent(org.springframework.data.annotation.Id.class)) {
                 f.setAccessible(true);
                 return f;

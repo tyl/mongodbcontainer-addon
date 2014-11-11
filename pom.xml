@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
 
-    <artifactId>mongodbcontainer</artifactId>
+    <artifactId>vaadin-mongodbcontainer</artifactId>
     <groupId>it.tylframework</groupId>
     <version>1.0-SNAPSHOT</version>
     <name>Spring Boot Data MongoDB Sample</name>

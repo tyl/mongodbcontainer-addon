@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2014 - Marco Pancotti
+ * Copyright 2012-2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
-/**
- * Created by marco on 12/07/14.
- */
-package it.tylframework.addon;
-// TODO - sincronizzare il paging standard di Vaadin col paging di MongoDb
-// TODO - studiare come si fa un save con optimistic lock in MongoDb
-// TODO - Studiare se c'è modo di avere un ordine dei record per default in MongoDb
+package org.tylproject.data.mongo;
+
+import java.util.List;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface CustomerRepository extends MongoRepository<Customer, String> {
+
+	public Customer findByFirstName(String firstName);
+
+	public List<Customer> findByLastName(String lastName);
+
+}

@@ -1,4 +1,4 @@
-package it.tylframework.data.mongo;
+package org.tylproject.data.mongo;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;

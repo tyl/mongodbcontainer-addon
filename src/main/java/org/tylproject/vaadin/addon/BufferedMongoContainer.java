@@ -1,4 +1,4 @@
-package it.tylframework.vaadin.addon;
+package org.tylproject.vaadin.addon;
 
 import com.vaadin.data.Buffered;
 import com.vaadin.data.util.BeanItem;

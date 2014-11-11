@@ -1,4 +1,4 @@
-package it.tylframework.vaadin.addon.utils;
+package org.tylproject.vaadin.addon.utils;
 
 import java.text.MessageFormat;
 import java.util.*;

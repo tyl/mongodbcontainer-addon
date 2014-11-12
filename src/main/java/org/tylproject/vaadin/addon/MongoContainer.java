@@ -74,13 +74,15 @@ public class MongoContainer<Bean>
         }
 
         public <Bean> BufferedMongoContainer<Bean> buildBuffered() {
-            BufferedMongoContainer<Bean> mc = new BufferedMongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
+            final BufferedMongoContainer<Bean> mc = new BufferedMongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
+            mc.fetchPage(0, pageSize);
             return mc;
         }
 
 
         public <Bean> MongoContainer<Bean> build() {
-            MongoContainer<Bean> mc= new MongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
+            final MongoContainer<Bean> mc = new MongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
+            mc.fetchPage(0, pageSize);
             return mc;
         }
 
@@ -90,7 +92,7 @@ public class MongoContainer<Bean>
     protected static final Logger log = Logger.getLogger("MongoContainer");
 
 
-    @Nonnull private Page<ObjectId> page;
+    @Nonnull protected Page<ObjectId> page;
     protected final int pageSize;
 
 
@@ -118,11 +120,10 @@ public class MongoContainer<Bean>
 
         this.pageSize = pageSize;
 
-        fetchPage(0, pageSize);
     }
 
 
-    private DBCursor cursor() {
+    protected DBCursor cursor() {
         DBObject criteriaObject = criteria.getCriteriaObject();
         DBObject projectionObject = new BasicDBObject(ID, true);
 
@@ -134,11 +135,11 @@ public class MongoContainer<Bean>
         return cursor;
     }
 
-    private DBCursor cursorInRange(int skip, int limit) {
+    protected DBCursor cursorInRange(int skip, int limit) {
         return cursor().skip(skip).limit(limit);
     }
 
-    private void fetchPage(int offset, int pageSize) {
+    protected void fetchPage(int offset, int pageSize) {
 
         // TODO: keep cursor around to possibly reuse
         DBCursor cursor = cursorInRange(offset, pageSize);
@@ -151,8 +152,13 @@ public class MongoContainer<Bean>
         this.page = newPage;
     }
 
-    static class BeanId { @Id public ObjectId _id; }
-    BeanDescriptor beanIdDescriptor = getBeanDescriptor(BeanId.class);
+    protected Page<ObjectId> page() {
+        if (!page.isValid()) fetchPage(page.offset, page.pageSize);
+        return page;
+    }
+
+    //static class BeanId { @Id public ObjectId _id; }
+    //BeanDescriptor beanIdDescriptor = getBeanDescriptor(BeanId.class);
 
     public BeanItem<Bean> getItem(Object o) {
         assertIdValid(o);
@@ -239,6 +245,7 @@ public class MongoContainer<Bean>
     @Override
     public boolean removeAllItems() throws UnsupportedOperationException {
         mongoOps.remove(Query.query(criteria), beanClass);
+        fireItemSetChange();
         return true;
     }
 
@@ -248,7 +255,7 @@ public class MongoContainer<Bean>
 
         // for the principle of locality,
         // let us optimistically first check within the page
-        int index = page.indexOf(oid);
+        int index = page().indexOf(oid);
         if (index > -1) return index;
 
         // otherwise, linearly scan the entire collection using a cursor
@@ -278,7 +285,7 @@ public class MongoContainer<Bean>
         //List<ObjectId> ids = new PropertyList<ObjectId,BeanId>(beans, beanIdDescriptor, "_id");
         log.info(String.format("range: [%d,%d]", startIndex, numberOfItems));
         if (page.isValid() && page.isWithinRange(startIndex, numberOfItems)) {
-            ; // return the requested range
+            return page.subList(startIndex, numberOfItems); // return the requested range
         }
 
         fetchPage(startIndex, numberOfItems);

@@ -152,6 +152,9 @@ public class MongoContainer<Bean>
         this.page = newPage;
     }
 
+    /**
+     * returns the page and refreshes it when invalid
+     */
     protected Page<ObjectId> page() {
         if (!page.isValid()) fetchPage(page.offset, page.pageSize);
         return page;
@@ -372,6 +375,11 @@ public class MongoContainer<Bean>
     protected void fireItemSetChange() {
         page.setInvalid();
         super.fireItemSetChange();
+    }
+
+    public void refresh() {
+        page.setInvalid();
+        page();
     }
 
     /**

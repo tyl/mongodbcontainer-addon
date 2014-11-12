@@ -158,11 +158,14 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
             UnsupportedOperationException {
         if (newItems.containsKey(itemId)) {
             newItems.remove(itemId);
-            return true;
+        } else {
+            if (updatedItems.containsKey(itemId)) {
+                updatedItems.remove(itemId);
+            }
+            int index = super.indexOfId(itemId);
+            removedItems.put((ObjectId) itemId, super.getItem(itemId));
+            removedItemsIndices.add(index);
         }
-        int index = super.indexOfId(itemId);
-        removedItems.put((ObjectId) itemId, super.getItem(itemId));
-        removedItemsIndices.add(index);
         fireItemSetChange();
         return true;
     }

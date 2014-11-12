@@ -1,12 +1,14 @@
 package org.tylproject.vaadin.addon.utils;
 
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Created by evacchi on 07/11/14.
  */
-public class Page<T> {
+public class BufferedPage<T> {
     public final int pageSize;
     public final int offset;
     public final int size;
@@ -14,7 +16,7 @@ public class Page<T> {
     private boolean valid;
     private T[] values;
 
-    public Page(int pageSize, int offset, int collectionSize) {
+    public BufferedPage(int pageSize, int offset, int collectionSize, List<T> removedIds) {
         this.pageSize = pageSize;
         this.offset = offset;
         this.size = collectionSize;
@@ -27,9 +29,6 @@ public class Page<T> {
     public void set(int index, T value) {
         if (index < offset)
             throw new ArrayIndexOutOfBoundsException(index+"<"+ offset);
-        if (index > this.maxIndex)
-            throw new ArrayIndexOutOfBoundsException(index+"<"+ maxIndex);
-
         int actualIndex = index-offset;
         this.values[actualIndex] = value;
     }
@@ -73,7 +72,7 @@ public class Page<T> {
     public boolean isWithinRange(int startIndex, int numberOfItems) {
         return startIndex >= this.offset
                 //&& numberOfItems <= this.pageSize
-                && startIndex + numberOfItems <= this.pageSize;
+                && startIndex + numberOfItems <= this.size;
     }
 
     public List<T> subList(int startIndex, int numberOfItems) {

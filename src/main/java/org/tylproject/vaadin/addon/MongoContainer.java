@@ -9,9 +9,12 @@ import com.vaadin.data.Item;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.AbstractContainer;
 import com.vaadin.data.util.BeanItem;
+import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Sort;
+import org.tylproject.vaadin.addon.beanfactory.BeanFactory;
+import org.tylproject.vaadin.addon.beanfactory.DefaultBeanFactory;
 import org.tylproject.vaadin.addon.utils.Page;
 import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -19,14 +22,30 @@ import org.springframework.data.mongodb.core.query.Query;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.beans.*;
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.logging.Logger;
 
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 
 /**
- * Created by evacchi on 26/09/14.
+ * Simple (non-buffered) Mongo Container
+ *
+ * Every change to this container will be immediately reflected in the DB.
+ * An instance of this container can be obtained through the fluent
+ * {@link org.tylproject.vaadin.addon.MongoContainer.Builder}
+ *
+ * This container is Ordered but not {@link com.vaadin.data.Container.Sortable},
+ * because it is not possible to sort it on the fly. You can always
+ * build a container for a sorted query using the Builder method
+ * {@link org.tylproject.vaadin.addon.MongoContainer.Builder#sortedBy(org.springframework.data.domain.Sort)}.
+ *
+ * Please notice that it is not possible to {@link #addItem()}
+ * or {@link #addItem(Object)}, because it would not be possible to satisfy
+ * the contract of the method. The itemId should be a temporary handle,
+ * but this container immediately reflects changes onto the DB,
+ * so this would result in an empty entity on the DB.
+ *
+ *
  */
 public class MongoContainer<Bean>
         extends AbstractContainer
@@ -34,58 +53,131 @@ public class MongoContainer<Bean>
         Container.ItemSetChangeNotifier {
 
 
-    public static class Builder {
+    /**
+     * Fluent Builder for a (Buffered)MongoContainer instance.
+     *
+     * Every Container includes all the properties of the given bean as a default.
+     * You can use the methods {@link org.tylproject.vaadin.addon.MongoContainer.Builder#withProperty(java.lang.String, Class)}
+     * and {@link org.tylproject.vaadin.addon.MongoContainer.Builder#withNestedProperty(java.lang.String, Class)}
+     * to define a custom list of properties.
+     *
+     * @param <BT> Type of the entity
+     */
+    public static class Builder<BT> {
 
         private final static int DEFAULT_PAGE_SIZE = 100;
 
 
         private final MongoOperations mongoOps;
         private Criteria mongoCriteria = new Criteria();
-        private Class<?> beanClass;
+        private final Class<BT> beanClass;
+        private Sort sort;
         private int pageSize = DEFAULT_PAGE_SIZE;
-        private Map<Object,Class<?>> ids = new HashMap<Object, Class<?>>();
+        private LinkedHashMap<String,Class<?>> simpleProperties = new LinkedHashMap<String, Class<?>>();
+        private LinkedHashMap<String,Class<?>> nestedProperties = new LinkedHashMap<String, Class<?>>();
 
-        public static MongoContainer.Builder with(final MongoOperations mongoOps) {
-            return new MongoContainer.Builder(mongoOps);
+        private boolean hasCustomPropertyList = false;
+        private BeanFactory<BT> beanFactory ;
+
+        /**
+         *
+         * @param beanClass class of the entity
+         * @param mongoOps mongoOperation instance
+         * @param <T> type of the entity
+         * @return
+         */
+        public static <T> MongoContainer.Builder<T> forEntity(
+                final Class<T> beanClass, final MongoOperations mongoOps) {
+            return new MongoContainer.Builder<T>(beanClass, mongoOps);
         }
 
-        private Builder(final MongoOperations mongoOps) {
+        private Builder(final Class<BT> beanClass, final MongoOperations mongoOps) {
             this.mongoOps = mongoOps;
+            this.beanClass = beanClass;
+            this.beanFactory = new DefaultBeanFactory<BT>(beanClass);
         }
 
-        public Builder forCriteria(final Criteria mongoCriteria) {
+        public Builder<BT> withBeanFactory(BeanFactory<BT> beanFactory) {
+            this.beanFactory = beanFactory;
+            return this;
+        }
+
+        /**
+         * @param mongoCriteria A {@link org.springframework.data.mongodb.core.query.Criteria}
+         *                      object created through Spring's
+         *                      fluent interface
+         */
+        public Builder<BT> forCriteria(final Criteria mongoCriteria) {
             this.mongoCriteria = mongoCriteria;
             return this;
         }
 
-        public Builder withBeanClass(final Class<?> beanClass) {
-            this.beanClass = beanClass;
+
+        /**
+         * @param sort A Spring {@link org.springframework.data.domain.Sort} object
+         */
+        public Builder<BT> sortedBy(final Sort sort) {
+            this.sort = sort;
             return this;
         }
 
-        public Builder withPageSize(final int pageSize) {
+        /**
+         * specify the (internal) page size of the lazy container
+         */
+        public Builder<BT> withPageSize(final int pageSize) {
             this.pageSize = pageSize;
             return this;
         }
 
-        public Builder withProperty(Object id, Class<?> type) {
-            ids.put(id, type);
+        /**
+         * adds a property with the given property id and of the given type
+         */
+        public Builder<BT> withProperty(String id, Class<?> type) {
+            hasCustomPropertyList = true;
+            simpleProperties.put(id, type);
             return this;
         }
 
-        public <Bean> BufferedMongoContainer<Bean> buildBuffered() {
-            final BufferedMongoContainer<Bean> mc = new BufferedMongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
+        /**
+         * adds a nested property of the given type.
+         *
+         * A  <em>nested</em> property for a bean is a property that can be reached
+         * through a <i>path</i> like <code>path.to.property</code>.
+         *
+         * e.g., suppose you have a bean Person, with a property "address"
+         * of type Address; suppose that Address has a property "street".
+         * In code you can write <code>myPerson.getAddress().getStreet()</code>.
+         *
+         * You can access such nested properties in the container using the syntax:
+         * <pre>
+         *     builder.withNestedProperty("address.street");
+         * </pre>
+         *
+         */
+        public Builder<BT> withNestedProperty(String id, Class<?> type) {
+            hasCustomPropertyList = true;
+            nestedProperties.put(id, type);
+            return this;
+        }
+
+
+        /**
+         * @return a simple MongoContainer instance
+         */
+        public MongoContainer<BT> build() {
+            final MongoContainer<BT> mc = new MongoContainer<BT>(this);
             mc.fetchPage(0, pageSize);
             return mc;
         }
 
-
-        public <Bean> MongoContainer<Bean> build() {
-            final MongoContainer<Bean> mc = new MongoContainer<Bean>(mongoCriteria, mongoOps, (Class<Bean>) beanClass, pageSize);
+        /**
+         * @return a BufferedMongoContainer instance
+         */
+        public BufferedMongoContainer<BT> buildBuffered() {
+            final BufferedMongoContainer<BT> mc = new BufferedMongoContainer<BT>(this);
             mc.fetchPage(0, pageSize);
             return mc;
         }
-
     }
 
     protected static final String ID = "_id";
@@ -98,33 +190,60 @@ public class MongoContainer<Bean>
 
     protected final Criteria criteria;
     protected final Query query;
+    protected final Sort sort;
+
     protected final MongoOperations mongoOps;
 
     protected final Class<Bean> beanClass;
-    protected final BeanDescriptor beanDescriptor;
+    protected final BeanFactory<Bean> beanFactory;
 
-    protected final LinkedHashMap<String, PropertyDescriptor> propertyDescriptorMap;
+    protected final Map<String, Class<?>> simpleProperties ;
+    protected final Map<String, Class<?>> nestedProperties ;
 
-    MongoContainer(final Criteria criteria,
-                           final MongoOperations mongoOps,
-                           final Class<Bean> beanClass,
-                           final int pageSize) {
-        this.criteria = criteria;
-        this.query = Query.query(criteria);
-        this.mongoOps = mongoOps;
+    protected final List<Object> allProperties;
 
-        this.beanClass = beanClass;
+    MongoContainer(Builder<Bean> bldr) {
+        this.criteria = bldr.mongoCriteria;
+        this.sort = bldr.sort;
+        this.query = Query.query(criteria).with(sort);
 
-        this.beanDescriptor = getBeanDescriptor(beanClass);
-        this.propertyDescriptorMap = getBeanPropertyDescriptor(beanClass);
 
-        this.pageSize = pageSize;
+        this.mongoOps = bldr.mongoOps;
+
+        this.beanClass = bldr.beanClass;
+        this.beanFactory = bldr.beanFactory;
+
+        if (bldr.hasCustomPropertyList) {
+            this.simpleProperties = Collections.unmodifiableMap(bldr
+                    .simpleProperties);
+            this.nestedProperties = Collections.unmodifiableMap(bldr.nestedProperties);
+
+        } else {
+
+            // otherwise, default to non-nested
+            this.simpleProperties = new LinkedHashMap<String, Class<?>>();
+            PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(beanClass);
+            for (PropertyDescriptor d: descriptors) {
+                this.simpleProperties.put(d.getName(), d.getPropertyType());
+            }
+            nestedProperties = Collections.emptyMap();
+        }
+
+
+        List<Object> allProps = new ArrayList<Object>(simpleProperties.keySet());
+        this.allProperties = Collections.unmodifiableList(allProps);
+        allProps.addAll(nestedProperties.keySet());
+
+        this.pageSize = bldr.pageSize;
 
     }
 
-
+    /**
+     * @return a cursor for the query object of this Container instance
+     */
     protected DBCursor cursor() {
         DBObject criteriaObject = criteria.getCriteriaObject();
+
         DBObject projectionObject = new BasicDBObject(ID, true);
 
         String collectionName = mongoOps.getCollectionName(beanClass);
@@ -132,13 +251,31 @@ public class MongoContainer<Bean>
 
         // TODO: keep cursor around to possibly reuse
         DBCursor cursor = dbCollection.find(criteriaObject, projectionObject);
+
+        if (this.sort != null) {
+            DBObject sortObject = this.query.getSortObject();
+            cursor.sort(sortObject);
+        }
+
         return cursor;
     }
 
+    /**
+     * returns a cursor in the given range.
+     *
+     * shorthand for <pre>
+     *      cursor().skip(skip).limit(limit);
+     * </pre>
+     */
     protected DBCursor cursorInRange(int skip, int limit) {
         return cursor().skip(skip).limit(limit);
     }
 
+    /**
+     * fetches a {@link org.tylproject.vaadin.addon.utils.Page}
+     * within the given range
+     *
+     */
     protected void fetchPage(int offset, int pageSize) {
 
         // TODO: keep cursor around to possibly reuse
@@ -153,29 +290,33 @@ public class MongoContainer<Bean>
     }
 
     /**
-     * returns the page and refreshes it when invalid
+     * returns the current page and refreshes it when invalid
      */
     protected Page<ObjectId> page() {
         if (!page.isValid()) fetchPage(page.offset, page.pageSize);
         return page;
     }
 
-    //static class BeanId { @Id public ObjectId _id; }
-    //BeanDescriptor beanIdDescriptor = getBeanDescriptor(BeanId.class);
-
     public BeanItem<Bean> getItem(Object o) {
         assertIdValid(o);
         final Bean document = mongoOps.findById(o, beanClass);
-        return new BeanItem<Bean>(document);
+        return makeBeanItem(document);
+    }
+
+    protected BeanItem<Bean> makeBeanItem(Bean document) {
+        final BeanItem<Bean> beanItem = new BeanItem<Bean>(document, this.simpleProperties.keySet());
+        for (String nestedPropId: nestedProperties.keySet()) {
+            beanItem.addNestedProperty(nestedPropId);
+        }
+        return beanItem;
     }
 
     @Override
     public Collection<?> getContainerPropertyIds() {
-        try {
-            return getVaadinPropertyIds(beanClass);
-        } catch (Exception e) { throw new Error(e); }
+        return this.allProperties;
     }
 
+    // method is basically deprecated
     @Override
     @Deprecated
     public List<ObjectId> getItemIds() {
@@ -193,8 +334,10 @@ public class MongoContainer<Bean>
     // return the data type of the given property id
     @Override
     public Class<?> getType(Object propertyId) {
-        PropertyDescriptor pd = propertyDescriptorMap.get(propertyId);
-        return pd == null? null: pd.getPropertyType();
+        if (simpleProperties.containsKey(propertyId)) return simpleProperties.get(propertyId);
+        else if (nestedProperties.containsKey(propertyId)) return nestedProperties.get(propertyId);
+
+        throw new IllegalArgumentException("Cannot find the given propertyId: " + propertyId);
     }
 
     @Override
@@ -204,15 +347,22 @@ public class MongoContainer<Bean>
 
     @Override
     public boolean containsId(Object itemId) {
-        return mongoOps.exists(Query.query(where(ID).is(itemId)), beanClass);
+        assertIdValid(itemId);
+        return mongoOps.exists(Query.query(where(ID).is(itemId)).with(sort), beanClass);
     }
 
+    /**
+     * @throws UnsupportedOperationException
+     */
     @Override
     public BeanItem<Bean> addItem(Object itemId) throws UnsupportedOperationException {
         throw new UnsupportedOperationException(
                 "cannot addItem(); insert() into mongo or build a buffered container");
     }
 
+    /**
+     * @throws UnsupportedOperationException
+     */
     @Override
     public ObjectId addItem() throws UnsupportedOperationException {
         throw new UnsupportedOperationException(
@@ -221,16 +371,12 @@ public class MongoContainer<Bean>
 
     public ObjectId addEntity(Bean target) {
         mongoOps.insert(target);
-        try {
-            return (ObjectId) getIdField(target).get(target);
-        } catch (IllegalAccessException ex) {
-            throw new UnsupportedOperationException(ex);
-        }
+        return this.beanFactory.getId(target);
     }
 
     @Override
     public boolean removeItem(Object itemId) throws UnsupportedOperationException {
-        mongoOps.findAndRemove(Query.query(where(ID).is(itemId)), beanClass);
+        mongoOps.findAndRemove(Query.query(where(ID).is(itemId)).with(sort), beanClass);
         fireItemSetChange();
         return true;
     }
@@ -247,7 +393,7 @@ public class MongoContainer<Bean>
 
     @Override
     public boolean removeAllItems() throws UnsupportedOperationException {
-        mongoOps.remove(Query.query(criteria), beanClass);
+        mongoOps.remove(this.query, beanClass);
         fireItemSetChange();
         return true;
     }
@@ -377,6 +523,9 @@ public class MongoContainer<Bean>
         super.fireItemSetChange();
     }
 
+    /**
+     * invalidate the internal page and reload it
+     */
     public void refresh() {
         page.setInvalid();
         page();
@@ -400,70 +549,6 @@ public class MongoContainer<Bean>
         return (ObjectId) o;
     }
 
-    private static <T> BeanDescriptor getBeanDescriptor(Class<T> beanClass) {
-        try {
-            return Introspector.getBeanInfo(beanClass).getBeanDescriptor();
-        } catch (Exception ex) { throw new Error(ex); }
-    }
 
-    private static LinkedHashMap<String, PropertyDescriptor> getBeanPropertyDescriptor(
-            final Class<?> beanClass) {
 
-        try {
-
-            LinkedHashMap<String, PropertyDescriptor> propertyDescriptorMap =
-                new LinkedHashMap<String, PropertyDescriptor>();
-
-            if (beanClass.isInterface()) {
-
-                for (Class<?> cls : beanClass.getInterfaces()) {
-                    propertyDescriptorMap.putAll(getBeanPropertyDescriptor(cls));
-                }
-
-                BeanInfo info = Introspector.getBeanInfo(beanClass);
-                for (PropertyDescriptor pd: info.getPropertyDescriptors()) {
-                    propertyDescriptorMap.put(pd.getName(), pd);
-                }
-
-            } else {
-                BeanInfo info = Introspector.getBeanInfo(beanClass);
-                for (PropertyDescriptor pd: info.getPropertyDescriptors()) {
-                    propertyDescriptorMap.put(pd.getName(), pd);
-                }
-            }
-
-            // obj.getClass() is not really a getter
-            propertyDescriptorMap.remove("class");
-
-            return propertyDescriptorMap;
-        } catch (Exception ex) { throw new Error(ex); }
-
-    }
-
-    private static Set<?> getVaadinPropertyIds(final Class<?> beanClass) throws IntrospectionException {
-        LinkedHashMap<String,PropertyDescriptor> propDescrs = getBeanPropertyDescriptor(beanClass);
-        return Collections.unmodifiableSet(propDescrs.keySet());
-    }
-
-    protected Field getIdField(Bean target) {
-        for (Field f : beanClass.getDeclaredFields()) {
-            if (f.isAnnotationPresent(org.springframework.data.annotation.Id.class)) {
-                f.setAccessible(true);
-                return f;
-            }
-        }
-        throw new UnsupportedOperationException("no id field was found");
-    }
-
-    /*
-    String getCollectionName(@Nonnull Class<?> beanClass) {
-        MongoPersistentEntity<?> persistentEntity = mongoOps.getConverter().getMappingContext().getPersistentEntity(beanClass);
-        if (persistentEntity == null) {
-            throw new IllegalArgumentException(
-                    "Cannot find collection for the given class"
-                    + beanClass.getName());
-        }
-        return persistentEntity.getCollection();
-    }
-    */
 }

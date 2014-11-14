@@ -2,12 +2,8 @@ package org.tylproject.vaadin.addon;
 
 import com.mongodb.DBCursor;
 import com.vaadin.data.Buffered;
-import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItem;
-import com.vaadin.data.util.BeanItemContainer;
 import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.MongoOperations;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.tylproject.vaadin.addon.utils.Page;
 
 import javax.annotation.Nullable;
@@ -24,8 +20,8 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
     private final LinkedHashMap<ObjectId,BeanItem<Bean>> removedItems = new LinkedHashMap<ObjectId, BeanItem<Bean>>();
     private final TreeSet<Integer> removedItemsIndices = new TreeSet<Integer>();
 
-    BufferedMongoContainer(Criteria criteria, MongoOperations mongoOps, Class<Bean> beanClass, int pageSize) {
-        super(criteria, mongoOps, beanClass, pageSize);
+    BufferedMongoContainer(Builder<Bean> bldr) {
+        super(bldr);
     }
 
     @Override
@@ -223,7 +219,8 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
 
         // if there is still space left in the page,
         // fill it with elements from addedItems
-        if (newPage.maxIndex >= this.size() && index < newPage.maxIndex) {
+        if ( ( newPage.maxIndex >= super.size() - removedItems.size() )
+                && index < newPage.maxIndex) {
             for (ObjectId objectId: newItems.keySet()) {
                 if (index >= newPage.maxIndex) break;
                 newPage.set(index, objectId);
@@ -234,8 +231,22 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
         this.page = newPage;
     }
 
-    public void notifyItemEdited(ObjectId itemId, BeanItem<Bean> updatedItem) {
+    /**
+     * Notify the container that the given item has been updated
+     *
+     * @param itemId
+     * @param updatedItem
+     * @throws java.lang.IllegalArgumentException if the itemId does not exist
+     *           or it has been scheduled for removal
+     */
+    public void notifyItemUpdated(ObjectId itemId, BeanItem<Bean> updatedItem) {
+        if (this.removedItems.containsKey(itemId))
+            throw new IllegalArgumentException("item "+itemId+" was removed");
         if (!this.newItems.containsKey(itemId)) {
+            if (!this.containsId(itemId)) {
+                throw new IllegalArgumentException("item " + itemId + " was removed");
+            }
+
             this.updatedItems.put(itemId, updatedItem);
         }
         if (page.indexOf(itemId) > -1) {
@@ -248,53 +259,25 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * Instantiate an entity automatically and return its ObjectId
+     *
+     * This method tries to instantiate an entity automatically
+     * using the {@link org.tylproject.vaadin.addon.beanfactory.BeanFactory}
+     * and insert it in the pending list of added items.
+     *
+     */
     @Override
     public ObjectId addItem() throws UnsupportedOperationException {
-        return this.addEntity(newBeanInstance());
+        return this.addEntity(beanFactory.newInstance());
     }
 
     @Override
     public ObjectId addEntity(Bean target) {
         BeanItem<Bean> beanItem = new BeanItem<Bean>(target);
-        ObjectId id = injectId(target);
+        ObjectId id = beanFactory.injectId(target);
         newItems.put(id, beanItem);
         return id;
     }
-
-    /**
-     * attempts to inject a new {@see ObjectId} instance in
-     * the field annotated with @Id
-     * @param target
-     * @return the injected id
-     */
-    protected ObjectId injectId(Bean target) {
-        try {
-            ObjectId id = new ObjectId();
-            getIdField(target).set(target, id);
-            return id;
-        } catch (IllegalAccessException ex) { throw new UnsupportedOperationException(ex); }
-    }
-
-    protected Bean newBeanInstance() {
-        try {
-            return beanClass.newInstance();
-        } catch (InstantiationException ex) {
-            throw new UnsupportedOperationException(
-                    "the given id or bean class cannot be instantiated.", ex);
-        } catch (IllegalAccessException ex) {
-            throw new UnsupportedOperationException(
-                    "the given id or bean class or its nullary constructor " +
-                            "is not accessible.", ex);
-        }
-    }
-
-
-//    protected static class NotifyingBeanItem<B> extends BeanItem<B> {
-//        private final BufferedMongoContainer<B> owner;
-//        public NotifyingBeanItem(B bean, BufferedMongoContainer<B> owner) {
-//            super(bean);
-//            this.owner = owner;
-//        }
-//    }
 
 }

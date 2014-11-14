@@ -29,9 +29,8 @@ public class BufferedMongoContainerTest {
         this.mongoOps = new MongoTemplate(new MongoClient(), "database");
     }
 
-    public MongoContainer.Builder builder() {
-        return MongoContainer.Builder.with(mongoOps)
-                .withBeanClass(beanClass)
+    public MongoContainer.Builder<Customer> builder() {
+        return MongoContainer.Builder.forEntity(beanClass,mongoOps)
                 .withPageSize(3);
     }
 

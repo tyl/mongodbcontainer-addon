@@ -4,16 +4,13 @@
     <modelVersion>4.0.0</modelVersion>
 
 
-    <artifactId>vaadin-mongodbcontainer-addon</artifactId>
-    <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
-    <version>1.0-SNAPSHOT</version>
-    <name>Vaadin MongoDB Container Addon</name>
+    <artifactId>mongodbcontainer-addon</artifactId>
+    <groupId>org.tylproject.addon.mongodbcontainer</groupId>
+    <version>0.9-SNAPSHOT</version>
+    <name>MongoDB Container Addon</name>
+    <organization><name>MATE s.r.l.</name></organization>
     <description></description>
-    <!--url>http://projects.spring.io/spring-boot/</url-->
-    <!--organization>
-        <name>Pivotal Software, Inc.</name>
-        <url>http://www.spring.io</url>
-    </organization-->
+
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -54,10 +51,10 @@
     </dependencies>
     <build>
         <plugins>
-            <plugin>
+            <!--plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
+            </plugin-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -73,6 +70,25 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Implementation-Title>${project.name}</Implementation-Title>
+                            <Implementation-Vendor>${project.organization.name}</Implementation-Vendor>
+                            <Vaadin-License-Title>Apache2</Vaadin-License-Title>
+                            <Vaadin-License-File>http://www.apache.org/licenses/LICENSE-2.0</Vaadin-License-File>
+
+                            <Vaadin-Package-Version>1</Vaadin-Package-Version>
+                        </manifestEntries>
+                    </archive>
+
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 </project>

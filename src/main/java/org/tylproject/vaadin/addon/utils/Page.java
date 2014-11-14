@@ -11,6 +11,7 @@ public class Page<T> {
     public final int offset;
     public final int size;
     public final int maxIndex;
+    private int maxValidIndex;
     private boolean valid;
     private T[] values;
 
@@ -20,6 +21,7 @@ public class Page<T> {
         this.size = collectionSize;
         this.valid = true;
         this.maxIndex = offset+pageSize;
+        this.maxValidIndex = 0;
         this.values = (T[]) new Object[pageSize];
         Arrays.fill(values, null);
     }
@@ -28,10 +30,14 @@ public class Page<T> {
         if (index < offset)
             throw new ArrayIndexOutOfBoundsException(index+"<"+ offset);
         if (index > this.maxIndex)
-            throw new ArrayIndexOutOfBoundsException(index+"<"+ maxIndex);
+            throw new ArrayIndexOutOfBoundsException(index+">"+ maxIndex);
 
         int actualIndex = index-offset;
         this.values[actualIndex] = value;
+
+        if (index > maxValidIndex)
+            maxValidIndex = index;
+
     }
 
     public T get(int index) {
@@ -73,7 +79,7 @@ public class Page<T> {
     public boolean isWithinRange(int startIndex, int numberOfItems) {
         return startIndex >= this.offset
                 //&& numberOfItems <= this.pageSize
-                && startIndex + numberOfItems <= this.pageSize;
+                && startIndex + numberOfItems <= this.maxValidIndex;
     }
 
     public List<T> subList(int startIndex, int numberOfItems) {

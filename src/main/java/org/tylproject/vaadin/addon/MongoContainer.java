@@ -369,8 +369,12 @@ public class MongoContainer<Bean>
                 "cannot addItem(); insert() into mongo or build a buffered container");
     }
 
+    /**
+     * performs an upsert of the given target bean
+     */
     public ObjectId addEntity(Bean target) {
-        mongoOps.insert(target);
+        mongoOps.save(target);
+        page.setInvalid();
         return this.beanFactory.getId(target);
     }
 

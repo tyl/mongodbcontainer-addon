@@ -249,9 +249,7 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
 
             this.updatedItems.put(itemId, updatedItem);
         }
-        if (page.indexOf(itemId) > -1) {
-            page.setInvalid();
-        }
+       page.setInvalid();
     }
 
     @Override
@@ -272,9 +270,15 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
         return this.addEntity(beanFactory.newInstance());
     }
 
+    /**
+     * schedules the given bean for adding
+     */
     @Override
     public ObjectId addEntity(Bean target) {
-        BeanItem<Bean> beanItem = new BeanItem<Bean>(target);
+        BeanItem<Bean> beanItem = new BeanItem<Bean>(target, simpleProperties.keySet());
+        for (String nestedProp: this.nestedProperties.keySet())
+            beanItem.addNestedProperty(nestedProp);
+
         ObjectId id = beanFactory.injectId(target);
         newItems.put(id, beanItem);
         return id;

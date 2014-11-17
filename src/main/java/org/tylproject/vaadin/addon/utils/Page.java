@@ -20,7 +20,7 @@ import java.text.MessageFormat;
 import java.util.*;
 
 /**
- * Created by evacchi on 07/11/14.
+ * Represents a cached page of the database in memory
  */
 public class Page<T> {
     public final int pageSize;
@@ -42,6 +42,11 @@ public class Page<T> {
         Arrays.fill(values, null);
     }
 
+    /**
+     *
+     * @throws java.lang.ArrayIndexOutOfBoundsException
+     *         unless offset <= index <= maxIndex
+     */
     public void set(int index, T value) {
         if (index < offset)
             throw new ArrayIndexOutOfBoundsException(index+"<"+ offset);
@@ -66,6 +71,10 @@ public class Page<T> {
         return this.values[index-offset];
     }
 
+    /**
+     * @return the index of the given value, or -1 if the value
+     *          is not on this page
+     */
     public int indexOf(T value) {
         for (int i = 0; i < values.length; ++i) {
             if (value.equals(values[i])) {
@@ -92,12 +101,25 @@ public class Page<T> {
         return valid;
     }
 
+    /**
+     * checks whether the given range of values
+     * is within the range of values that this page holds.
+     *
+     * e.g., if the page holds value within [0,100]
+     *      and startIndex == 10 && numberOfItems == 5
+     *      then the method returns true, because [10,15] is
+     *      included in [0,100]
+     *
+     */
     public boolean isWithinRange(int startIndex, int numberOfItems) {
         return startIndex >= this.offset
                 //&& numberOfItems <= this.pageSize
                 && startIndex + numberOfItems <= this.maxValidIndex;
     }
 
+    /**
+     * retuns an immutable sublist of the given subrange
+     */
     public List<T> subList(int startIndex, int numberOfItems) {
         List<T> idList = this.toImmutableList(); // indexed from 0, as required by the interface contract
         return idList.subList(startIndex-offset, numberOfItems);

@@ -96,11 +96,13 @@ public class MongoContainer<Bean>
         private BeanFactory<BT> beanFactory ;
 
         /**
+         * Initializes and return a builder for a MongoContainer
          *
          * @param beanClass class of the entity
          * @param mongoOps mongoOperation instance
          * @param <T> type of the entity
-         * @return
+         * @return the builder instance for the given entity,
+         *         using the given MongoOperations instance
          */
         public static <T> MongoContainer.Builder<T> forEntity(
                 final Class<T> beanClass, final MongoOperations mongoOps) {

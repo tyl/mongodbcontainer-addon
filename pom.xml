@@ -8,8 +8,7 @@
     <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
     <version>0.9-SNAPSHOT</version>
     <name>MongoDB Container Addon</name>
-    <organization><name>MATE s.r.l.</name></organization>
-    <description></description>
+    <organization><name>Tyl Consulting s.a.s.</name></organization>
 
 
     <properties>

@@ -21,7 +21,9 @@ import org.bson.types.ObjectId;
 import java.lang.reflect.Field;
 
 /**
- * Created by evacchi on 14/11/14.
+ * A bean factory that reflectively reads and injects
+ * an ObjectId into a target bean instance.
+ *
  */
 public class DefaultBeanFactory<T> implements BeanFactory<T> {
     Class<T> beanClass;
@@ -31,7 +33,7 @@ public class DefaultBeanFactory<T> implements BeanFactory<T> {
     }
 
     /**
-     * attempts to inject a new {@see ObjectId} instance in
+     * attempts to inject a new {@link ObjectId} instance in
      * the field annotated with @Id
      * @param target
      * @return the injected id
@@ -48,6 +50,12 @@ public class DefaultBeanFactory<T> implements BeanFactory<T> {
         } catch (IllegalAccessException ex) { throw new UnsupportedOperationException(ex); }
     }
 
+    /**
+     *
+     * @throws java.lang.UnsupportedOperationException
+     *          if the instantiation throws an {@link InstantiationException}
+     *          or an {@link IllegalAccessException}
+     */
     @Override
     public T newInstance() {
         try {
@@ -78,6 +86,11 @@ public class DefaultBeanFactory<T> implements BeanFactory<T> {
         }
     }
 
+    /**
+     * @throws java.lang.UnsupportedOperationException
+     *          if no field is annotated using
+     *          {@link org.springframework.data.annotation.Id}
+     */
     protected Field getIdField() {
         for (Field f : beanClass.getDeclaredFields()) {
             if (f.isAnnotationPresent(org.springframework.data.annotation.Id.class)) {

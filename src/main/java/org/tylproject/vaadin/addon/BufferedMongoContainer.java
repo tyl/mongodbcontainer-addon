@@ -25,9 +25,6 @@ import org.tylproject.vaadin.addon.utils.Page;
 import javax.annotation.Nullable;
 import java.util.*;
 
-/**
- * Created by evacchi on 06/11/14.
- */
 public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
     implements Buffered {
 

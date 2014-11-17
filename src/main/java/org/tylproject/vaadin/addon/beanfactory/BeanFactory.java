@@ -22,13 +22,25 @@ import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
- * Created by evacchi on 14/11/14.
+ * A factory for beans
+ *
+ * @param <T> the type of the bean
  */
 public interface BeanFactory<T> {
 
+    /**
+     * injects the given ObjectId into the target bean
+     */
     ObjectId injectId(T target);
 
+    /**
+     * instantiates and returns a bean of the given
+     * type parameter
+     */
     T newInstance();
 
+    /**
+     * returns the id of the given bean
+     */
     ObjectId getId(T target);
 }

@@ -5,7 +5,7 @@
 
 
     <artifactId>mongodbcontainer-addon</artifactId>
-    <groupId>org.tylproject.addon.mongodbcontainer</groupId>
+    <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
     <version>0.9-SNAPSHOT</version>
     <name>MongoDB Container Addon</name>
     <organization><name>MATE s.r.l.</name></organization>

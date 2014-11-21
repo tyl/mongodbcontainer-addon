@@ -321,10 +321,18 @@ public class MongoContainer<Bean>
     public BeanItem<Bean> getItem(Object o) {
         assertIdValid(o);
         final Bean document = mongoOps.findById(o, beanClass);
+        // document was not found in the actual DB
+        // but it was in the ID cache
+        // then the cache is invalid
+        if (document == null && page.contains(o)) {
+            refresh();
+        }
         return makeBeanItem(document);
     }
 
     protected BeanItem<Bean> makeBeanItem(Bean document) {
+        if (document == null) return null;
+
         final BeanItem<Bean> beanItem = new BeanItem<Bean>(document, this.simpleProperties.keySet());
         for (String nestedPropId: nestedProperties.keySet()) {
             beanItem.addNestedProperty(nestedPropId);
@@ -349,7 +357,10 @@ public class MongoContainer<Bean>
 
     @Override
     public Property<?> getContainerProperty(Object itemId, Object propertyId) {
-        return getItem(itemId).getItemProperty(propertyId);
+        BeanItem<Bean> item = getItem(itemId);
+        if (item == null) return null;
+
+        return item.getItemProperty(propertyId);
     }
 
     // return the data type of the given property id

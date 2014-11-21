@@ -30,6 +30,7 @@ public class Page<T> {
     public final int offset;
     public final int size;
     public final int maxIndex;
+    public final Set<T> valueSet = new HashSet<T>();
     private int maxValidIndex;
     private boolean valid;
     private T[] values;
@@ -58,6 +59,7 @@ public class Page<T> {
 
         int actualIndex = index-offset;
         this.values[actualIndex] = value;
+        this.valueSet.add(value);
 
         if (index > maxValidIndex)
             maxValidIndex = index;
@@ -85,6 +87,10 @@ public class Page<T> {
             }
         }
         return -1;
+    }
+
+    public boolean contains(Object value) {
+        return valueSet.contains(value);
     }
 
     public int getPageSize() {

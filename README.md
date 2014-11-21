@@ -1,12 +1,13 @@
-# Vaadin MongoContainer
+# Vaadin Lazy MongoContainer
 
-A Vaadin Container for MongoDB based on Spring Data.
+A Lazy Vaadin Container for MongoDB based on Spring Data.
 
 ## Features
 
-- Automatic POJO Mapping through Spring Data's `MongoTemplate` 
+- Automatic Bean Mapping through Spring Data's `MongoTemplate` 
 - Rich Query Interface through Spring Data's `Criteria` objects
 - Optional `Buffered` variant for batch editing
+- Lazy loading of new Beans to handle large datasets 
 
 
 ## Installing
@@ -133,6 +134,7 @@ NOTE: This is not necessary for non-buffered containers, as the items can be ref
 
 Any `MongoContainer` instance is bound to the given (optional) Spring `Criteria`. As such, the container contents always reflect these constraints; therefore, the MongoContainer **does not** implement interfaces or methods that imply violating this rule. For instance:
 
+- Data is loaded *lazily* into pages. In order to ensure a low memory usage, only the ObjectIds are kept, actual data is loaded on demand.
 - Properties cannot be added or removed on the container; if you want to change the list of columns, do so at build-time.
 - `Container.Sortable` is not implemented. If you want to sort a query, use `Builder.sortedBy(Sort)`
 - As seen above, it is not possible to change a `BufferedMongoContainer` to a non-buffered container using `.setBuffered()`

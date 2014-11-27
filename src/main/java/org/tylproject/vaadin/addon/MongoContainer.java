@@ -457,7 +457,7 @@ public class MongoContainer<Bean>
     @Override
     @Nullable
     public ObjectId getIdByIndex(int index) {
-        if (size() == 0) return null;
+        if (index < 0 || size() == 0) return null;
         DBCursor cur = cursorInRange(index, 1);
         return cur.hasNext()?
                 (ObjectId)cur.next().get(ID)

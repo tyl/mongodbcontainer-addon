@@ -147,7 +147,7 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
     @Override
     @Nullable
     public ObjectId getIdByIndex(final int index) {
-        if (this.size() == 0) return null;
+        if (index < 0 || this.size() == 0) return null;
 
         int actualIndex = index;
 

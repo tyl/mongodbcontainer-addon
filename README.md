@@ -18,7 +18,7 @@ With Maven, add this to your `pom.xml`
 <dependency>
     <artifactId>mongodbcontainer-addon</artifactId>
     <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
-    <version>0.9-BETA</version>
+    <version>0.9.3-beta.RELEASE</version>
 </dependency>
 ```
 
@@ -59,8 +59,7 @@ public class Address {
 
 ### Simple MongoContainer
 
-A simple `MongoContainer` instance writes back any change immediately on the backing MongoDB storage. Changes are committed immediately, as you insert, edit or remove items.
-You can create a simple container using the fluent builder
+A simple `MongoContainer` instance writes back any change immediately on the backing MongoDB storage. Changes are committed immediately, as you insert, edit or remove items. You can create a simple container using the fluent builder
 
 ```java
 MongoOperations mo = new MongoTemplate(new MongoClient(), "database");
@@ -70,7 +69,8 @@ MongoContainer<Person> mongoContainer =
 		    .forCriteria(where("firstName").is("Paul")).build();
 ```
 
-For the `Criteria` object, refer to [Spring's documentation](http://docs.spring.io/spring-data/mongodb/docs/current/reference/html/). 
+For the `Criteria` object, refer to [Spring's documentation](http://docs.spring.io/spring-data/mongodb/docs/current/reference/html/). Vaadin standard "Filters" are also supported since v0.9.3. In this case, the Criteria object is always kept even when removeAllFilters() is invoked.
+
 `Items` are implemented using Vaadin's `BeanItem<T>` (where `T` in this case is `Person `), so you can access the underlying entity instance using `item.getBean()`.
 The container can be bound it to a widget such as `Table` as usual:
 
@@ -138,6 +138,6 @@ Any `MongoContainer` instance is bound to the given (optional) Spring `Criteria`
 - Properties cannot be added or removed on the container; if you want to change the list of columns, do so at build-time.
 - `Container.Sortable` is not implemented. If you want to sort a query, use `Builder.sortedBy(Sort)`
 - As seen above, it is not possible to change a `BufferedMongoContainer` to a non-buffered container using `.setBuffered()`
-- ~~Filters are currently applied through the fluent `Criteria` and `Query` interfaces.~~ MongoContainer now implemnets the `Container.Filterable` interface and supports all Vaadin's standard filters, as indicated by the Book of Vaadin. In order to support more filters you can easily extend the `DefaultFilterConverter` with more cases.
+- ~~Filters are currently applied through the fluent `Criteria` and `Query` interfaces.~~ since v0.9.3 MongoContainer implements the `Container.Filterable` interface and supports all Vaadin's standard filters, as indicated by the Book of Vaadin. In order to support more filters you can easily extend the `DefaultFilterConverter` with more cases.
 
 

@@ -2,6 +2,8 @@ package org.tylproject.vaadin.addon.mongo;
 
 import com.mongodb.MongoClient;
 import com.vaadin.data.util.BeanItem;
+import com.vaadin.data.util.filter.SimpleStringFilter;
+import junit.framework.Assert;
 import org.springframework.data.domain.Sort;
 import org.tylproject.data.mongo.Customer;
 import org.tylproject.vaadin.addon.MongoContainer;
@@ -118,16 +120,30 @@ public class MongoContainerTest {
 
         final MongoContainer<Customer> mc =
                 builder()
-                        .forCriteria(crit)
+//                        .forCriteria(crit)
                         .build();
 
+        assertEquals(7, mc.size());
+
+
+        mc.addContainerFilter(new SimpleStringFilter("firstName", "d", false, false));
 
         List<Customer> bs = mongoOps.find(query(crit), beanClass);
+
+
+        assertEquals(1, mc.size());
+
 
         for (Customer c: bs) {
             System.out.println(c);
             assertEquals(true, mc.containsId(c.getId()));
         }
+
+
+        mc.removeAllContainerFilters();
+
+        assertEquals(7, mc.size());
+
 
     }
 

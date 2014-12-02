@@ -28,10 +28,13 @@ import com.vaadin.data.Item;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.AbstractContainer;
 import com.vaadin.data.util.BeanItem;
+import com.vaadin.data.util.filter.UnsupportedFilterException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Sort;
 import org.tylproject.vaadin.addon.beanfactory.BeanFactory;
 import org.tylproject.vaadin.addon.beanfactory.DefaultBeanFactory;
+import org.tylproject.vaadin.addon.utils.DefaultFilterConverter;
+import org.tylproject.vaadin.addon.utils.FilterConverter;
 import org.tylproject.vaadin.addon.utils.Page;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoOperations;
@@ -69,7 +72,10 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 public class MongoContainer<Bean>
         extends AbstractContainer
         implements Container, Container.Ordered, Container.Indexed,
+        Container.Filterable,
         Container.ItemSetChangeNotifier {
+
+
 
 
     /**
@@ -97,6 +103,7 @@ public class MongoContainer<Bean>
 
         private boolean hasCustomPropertyList = false;
         private BeanFactory<BT> beanFactory ;
+        private FilterConverter filterConverter = new DefaultFilterConverter();
 
         /**
          * Initializes and return a builder for a MongoContainer
@@ -181,6 +188,11 @@ public class MongoContainer<Bean>
             return this;
         }
 
+        public Builder<BT> withFilterConverter(FilterConverter customFilterConverter) {
+            this.filterConverter = customFilterConverter;
+            return this;
+        }
+
 
         /**
          * @return a simple MongoContainer instance
@@ -210,8 +222,14 @@ public class MongoContainer<Bean>
 
 
     protected final Criteria criteria;
-    protected final Query query;
+    /**
+     * criteria updated by {@link #addContainerFilter(com.vaadin.data.Container.Filter)}
+     */
+    protected Query query;
+    protected final Query baseQuery;
     protected final Sort sort;
+    protected final FilterConverter filterConverter;
+    protected final List<Filter> appliedFilters = new ArrayList<Filter>();
 
     protected final MongoOperations mongoOps;
 
@@ -226,7 +244,10 @@ public class MongoContainer<Bean>
     MongoContainer(Builder<Bean> bldr) {
         this.criteria = bldr.mongoCriteria;
         this.sort = bldr.sort;
-        this.query = Query.query(criteria).with(sort);
+        this.filterConverter = bldr.filterConverter;
+        this.baseQuery = Query.query(criteria).with(sort);
+        resetQuery();
+
 
 
         this.mongoOps = bldr.mongoOps;
@@ -263,7 +284,7 @@ public class MongoContainer<Bean>
      * @return a cursor for the query object of this Container instance
      */
     protected DBCursor cursor() {
-        DBObject criteriaObject = criteria.getCriteriaObject();
+        DBObject criteriaObject = query.getQueryObject();
 
         DBObject projectionObject = new BasicDBObject(ID, true);
 
@@ -380,7 +401,7 @@ public class MongoContainer<Bean>
     @Override
     public boolean containsId(Object itemId) {
         assertIdValid(itemId);
-        return mongoOps.exists(Query.query(where(ID).is(itemId)).with(sort), beanClass);
+        return mongoOps.exists(query.addCriteria(where(ID).is(itemId)), beanClass);
     }
 
     /**
@@ -412,7 +433,7 @@ public class MongoContainer<Bean>
 
     @Override
     public boolean removeItem(Object itemId) throws UnsupportedOperationException {
-        mongoOps.findAndRemove(Query.query(where(ID).is(itemId)).with(sort), beanClass);
+        mongoOps.findAndRemove(this.query.addCriteria(where(ID).is(itemId)), beanClass);
         fireItemSetChange();
         return true;
     }
@@ -585,6 +606,36 @@ public class MongoContainer<Bean>
         return (ObjectId) o;
     }
 
+    @Override
+    public void addContainerFilter(Filter filter) throws UnsupportedFilterException {
+        this.query.addCriteria(filterConverter.convert(filter));
+        appliedFilters.add(filter);
+        page.setInvalid();
+    }
 
+    @Override
+    public void removeContainerFilter(Filter filter) {
+        appliedFilters.remove(filter);
+        removeAllContainerFilters();
+        for (Filter f: appliedFilters) {
+            addContainerFilter(f);
+        }
+    }
+
+    @Override
+    public void removeAllContainerFilters() {
+        resetQuery();
+        page.setInvalid();
+    }
+
+    protected void resetQuery() {
+        this.query = Query.query(criteria).with(sort);
+        this.appliedFilters.clear();
+    }
+
+    @Override
+    public Collection<Filter> getContainerFilters() {
+        return Collections.unmodifiableList(new ArrayList<Filter>(appliedFilters));
+    }
 
 }

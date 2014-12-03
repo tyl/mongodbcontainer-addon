@@ -4,6 +4,7 @@ import com.mongodb.MongoClient;
 import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.filter.SimpleStringFilter;
 import junit.framework.Assert;
+import junit.framework.TestCase;
 import org.springframework.data.domain.Sort;
 import org.tylproject.data.mongo.Customer;
 import org.tylproject.vaadin.addon.MongoContainer;
@@ -50,7 +51,7 @@ public class MongoContainerTest {
     public void setupDatabase() throws Exception {
         // save some customers
         mongoOps.save(new Customer("Austin", "Carlson"));
-        mongoOps.save(new Customer("Callie", "Scott"));
+        mongoOps.save(new Customer("Austin", "Scott"));
         mongoOps.save(new Customer("Cordelia", "McDaniel"));
         mongoOps.save(new Customer("Herbert", "Harris"));
         mongoOps.save(new Customer("Jimmy", "Simpson"));
@@ -119,9 +120,7 @@ public class MongoContainerTest {
         final Criteria crit = where("firstName").regex(".*d.*");
 
         final MongoContainer<Customer> mc =
-                builder()
-//                        .forCriteria(crit)
-                        .build();
+                builder().build();
 
         assertEquals(7, mc.size());
 
@@ -144,6 +143,29 @@ public class MongoContainerTest {
 
         assertEquals(7, mc.size());
 
+
+    }
+
+    @Test
+    public void testSort() {
+        final MongoContainer<Customer> mc =
+                builder().build();
+
+        final Object[] columns = { "lastName" };
+        final boolean[] ascending = { false };
+
+        mc.sort(columns, ascending);
+
+        Object id1 = mc.firstItemId();
+        assertEquals(mc.getItem(id1).getBean().getLastName(), "Scott");
+
+        for (int i = 0; i < mc.size(); i++) {
+            Object id = mc.getIdByIndex(i+1);
+            id1 = mc.nextItemId(id1);
+            assertEquals(id1, id);
+        }
+
+        assertEquals(mc.getItem(mc.lastItemId()).getBean().getLastName(), "Long");
 
     }
 

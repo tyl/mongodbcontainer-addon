@@ -72,7 +72,7 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 public class MongoContainer<Bean>
         extends AbstractContainer
         implements Container, Container.Ordered, Container.Indexed,
-        Container.Filterable,
+        Container.Filterable, Container.Sortable,
         Container.ItemSetChangeNotifier {
 
 
@@ -227,7 +227,8 @@ public class MongoContainer<Bean>
      */
     protected Query query;
     protected final Query baseQuery;
-    protected final Sort sort;
+    protected final Sort baseSort;
+    protected Sort sort;
     protected final FilterConverter filterConverter;
     protected final List<Filter> appliedFilters = new ArrayList<Filter>();
 
@@ -243,9 +244,9 @@ public class MongoContainer<Bean>
 
     MongoContainer(Builder<Bean> bldr) {
         this.criteria = bldr.mongoCriteria;
-        this.sort = bldr.sort;
+        this.baseSort = bldr.sort;
         this.filterConverter = bldr.filterConverter;
-        this.baseQuery = Query.query(criteria).with(sort);
+        this.baseQuery = Query.query(criteria).with(baseSort);
         resetQuery();
 
 
@@ -294,7 +295,7 @@ public class MongoContainer<Bean>
         // TODO: keep cursor around to possibly reuse
         DBCursor cursor = dbCollection.find(criteriaObject, projectionObject);
 
-        if (this.sort != null) {
+        if (this.baseSort != null || this.sort != null) {
             DBObject sortObject = this.query.getSortObject();
             cursor.sort(sortObject);
         }
@@ -469,8 +470,11 @@ public class MongoContainer<Bean>
         DBCursor cur = cursor();
         for (int i = 0; cur.hasNext(); i++) {
             // skip the check for those already in the page
-            if (i >= page.offset && i < page.maxIndex) continue;
-            if (cur.next().get(ID).equals(itemId)) return i;
+            DBObject value = cur.next();
+            if (i >= page.offset && i < page.maxIndex) {
+                continue;
+            }
+            if (value.get(ID).equals(itemId)) return i;
         }
         return -1;
     }
@@ -629,13 +633,52 @@ public class MongoContainer<Bean>
     }
 
     protected void resetQuery() {
-        this.query = Query.query(criteria).with(sort);
+        this.query = Query.query(criteria).with(baseSort).with(sort);
         this.appliedFilters.clear();
     }
 
     @Override
     public Collection<Filter> getContainerFilters() {
         return Collections.unmodifiableList(new ArrayList<Filter>(appliedFilters));
+    }
+
+
+    @Override
+    public void sort(Object[] propertyId, boolean[] ascending) {
+        if (propertyId.length != ascending.length)
+            throw new IllegalArgumentException(
+                    String.format(
+                    "propertyId array length does not match" +
+                            "ascending array length (%d!=%d)",
+                            propertyId.length,
+                            ascending.length));
+
+        if (propertyId.length == 0) {
+            throw new IllegalArgumentException("array size should be > 0");
+        }
+
+        List<String> ascendingProperties = new ArrayList<String>();
+        List<String> descendingProperties = new ArrayList<String>();
+
+
+        Sort result = new Sort(
+                ascending[0]? Sort.Direction.ASC : Sort.Direction.DESC,
+                propertyId[0].toString());
+        for (int i = 1; i < propertyId.length; i++) {
+            result = result.and(new Sort(
+                    ascending[i]? Sort.Direction.ASC : Sort.Direction.DESC,
+                    propertyId[i].toString()));
+        }
+
+        this.sort = result;
+        resetQuery();
+        refresh();
+
+    }
+
+    @Override
+    public Collection<?> getSortableContainerPropertyIds() {
+        return getContainerPropertyIds();
     }
 
 }

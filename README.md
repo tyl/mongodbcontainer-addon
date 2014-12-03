@@ -136,7 +136,7 @@ Any `MongoContainer` instance is bound to the given (optional) Spring `Criteria`
 
 - Data is loaded *lazily* into pages. In order to ensure a low memory usage, only the ObjectIds are kept, actual data is loaded on demand.
 - Properties cannot be added or removed on the container; if you want to change the list of columns, do so at build-time.
-- `Container.Sortable` is not implemented. If you want to sort a query, use `Builder.sortedBy(Sort)`
+- ~~`Container.Sortable` is not implemented.~~ A query, can be sorted at construction time using `Builder.sortedBy(Sort)`. Since v0.9.4 you can also sort the container through Vaadin's `sort()` method. 
 - As seen above, it is not possible to change a `BufferedMongoContainer` to a non-buffered container using `.setBuffered()`
 - ~~Filters are currently applied through the fluent `Criteria` and `Query` interfaces.~~ since v0.9.3 MongoContainer implements the `Container.Filterable` interface and supports all Vaadin's standard filters, as indicated by the Book of Vaadin. In order to support more filters you can easily extend the `DefaultFilterConverter` with more cases.
 

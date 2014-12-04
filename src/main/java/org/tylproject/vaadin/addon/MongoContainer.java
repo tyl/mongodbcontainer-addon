@@ -77,7 +77,6 @@ public class MongoContainer<Bean>
 
 
 
-
     /**
      * Fluent Builder for a (Buffered)MongoContainer instance.
      *
@@ -231,6 +230,7 @@ public class MongoContainer<Bean>
     protected Sort sort;
     protected final FilterConverter filterConverter;
     protected final List<Filter> appliedFilters = new ArrayList<Filter>();
+    protected final List<Criteria> appliedCriteria = new ArrayList<Criteria>();
 
     protected final MongoOperations mongoOps;
 
@@ -428,13 +428,15 @@ public class MongoContainer<Bean>
      */
     public ObjectId addEntity(Bean target) {
         mongoOps.save(target);
-        page.setInvalid();
+        refresh();
         return this.beanFactory.getId(target);
     }
 
     @Override
     public boolean removeItem(Object itemId) throws UnsupportedOperationException {
-        mongoOps.findAndRemove(this.query.addCriteria(where(ID).is(itemId)), beanClass);
+        Query q = makeBaseQuery().addCriteria(where(ID).is(itemId));
+        mongoOps.findAndRemove(q, beanClass);
+        refresh();
         fireItemSetChange();
         return true;
     }
@@ -452,6 +454,7 @@ public class MongoContainer<Bean>
     @Override
     public boolean removeAllItems() throws UnsupportedOperationException {
         mongoOps.remove(this.query, beanClass);
+        refresh();
         fireItemSetChange();
         return true;
     }
@@ -592,6 +595,10 @@ public class MongoContainer<Bean>
         page();
     }
 
+    protected Query makeBaseQuery() {
+        return Query.query(criteria).with(baseSort);
+    }
+
     /**
      * Verifies that the given Object instance is a valid itemId
      *
@@ -612,7 +619,9 @@ public class MongoContainer<Bean>
 
     @Override
     public void addContainerFilter(Filter filter) throws UnsupportedFilterException {
-        this.query.addCriteria(filterConverter.convert(filter));
+        Criteria c = filterConverter.convert(filter);
+        this.query.addCriteria(c);
+        appliedCriteria.add(c);
         appliedFilters.add(filter);
         page.setInvalid();
     }
@@ -629,13 +638,18 @@ public class MongoContainer<Bean>
     @Override
     public void removeAllContainerFilters() {
         resetQuery();
+        applySort(this.query, this.sort);
         page.setInvalid();
     }
 
     protected void resetQuery() {
-        this.query = Query.query(criteria).with(baseSort).with(sort);
+        this.query = makeBaseQuery();
         this.appliedFilters.clear();
+        this.appliedCriteria.clear();
+        this.sort = null;
     }
+
+
 
     @Override
     public Collection<Filter> getContainerFilters() {
@@ -653,27 +667,40 @@ public class MongoContainer<Bean>
                             propertyId.length,
                             ascending.length));
 
-        if (propertyId.length == 0) {
-            throw new IllegalArgumentException("array size should be > 0");
+        Sort result = null;
+
+        // if the arrays are empty, will just the conditions
+
+        if (propertyId.length != 0) {
+            result = new Sort(
+                    ascending[0] ? Sort.Direction.ASC : Sort.Direction.DESC,
+                    propertyId[0].toString());
+            for (int i = 1; i < propertyId.length; i++) {
+                result = result.and(new Sort(
+                        ascending[i] ? Sort.Direction.ASC : Sort.Direction.DESC,
+                        propertyId[i].toString()));
+            }
         }
 
-        List<String> ascendingProperties = new ArrayList<String>();
-        List<String> descendingProperties = new ArrayList<String>();
+        resetQuery();
 
-
-        Sort result = new Sort(
-                ascending[0]? Sort.Direction.ASC : Sort.Direction.DESC,
-                propertyId[0].toString());
-        for (int i = 1; i < propertyId.length; i++) {
-            result = result.and(new Sort(
-                    ascending[i]? Sort.Direction.ASC : Sort.Direction.DESC,
-                    propertyId[i].toString()));
-        }
+        applySort(this.query, result);
+        applyCriteriaList(this.query, appliedCriteria);
 
         this.sort = result;
-        resetQuery();
+
         refresh();
 
+    }
+
+    protected Query applySort(Query q, Sort s) {
+        q.with(s);
+        return q;
+    }
+    protected Query applyCriteriaList(Query q, List<Criteria> criteriaList) {
+        for (Criteria c: criteriaList)
+            q.addCriteria(c);
+        return q;
     }
 
     @Override

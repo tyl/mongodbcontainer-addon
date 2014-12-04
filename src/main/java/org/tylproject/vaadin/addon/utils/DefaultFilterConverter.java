@@ -40,7 +40,7 @@ public class DefaultFilterConverter implements FilterConverter {
             return convertSimpleStringFilter(((SimpleStringFilter) f));
         } else
         if (f instanceof Compare) {
-            convertCompareFilter((Compare) f);
+            return convertCompareFilter((Compare) f);
         } else
         if (f instanceof Not) {
             return convertNegated(((Not) f).getFilter());
@@ -89,9 +89,9 @@ public class DefaultFilterConverter implements FilterConverter {
         List<Criteria> cs = convertAll(filterList);
         Criteria c = cs.get(0);
         if (negated)
-            c.norOperator(cs.subList(1, cs.size() - 1).toArray(new Criteria[0]));
+            c.norOperator(cs.subList(1, cs.size()).toArray(new Criteria[0]));
         else
-            c.orOperator(cs.subList(1, cs.size() - 1).toArray(new Criteria[0]));
+            c.orOperator(cs.subList(1, cs.size()).toArray(new Criteria[0]));
         return c;
     }
 
@@ -109,7 +109,7 @@ public class DefaultFilterConverter implements FilterConverter {
         }
         List<Criteria> cs = convertAll(filterList);
         Criteria c = cs.get(0);
-        c.andOperator(cs.subList(1, cs.size()-1).toArray(new Criteria[0]));
+        c.andOperator(cs.subList(1, cs.size()).toArray(new Criteria[0]));
         return c;
     }
 

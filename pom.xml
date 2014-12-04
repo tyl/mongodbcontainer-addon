@@ -6,7 +6,7 @@
 
     <artifactId>mongodbcontainer-addon</artifactId>
     <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
-    <version>0.9.4-beta.RELEASE</version>
+    <version>0.9.5-beta-SNAPSHOT</version>
     <name>MongoDB Container Addon</name>
     <organization><name>Tyl Consulting s.a.s.</name></organization>
 

@@ -1,5 +1,7 @@
 # Vaadin Lazy MongoContainer
 
+![travis build](https://api.travis-ci.org/tyl/mongodbcontainer-addon.svg)
+
 A Lazy Vaadin Container for MongoDB based on Spring Data.
 
 ## Features
@@ -18,7 +20,7 @@ With Maven, add this to your `pom.xml`
 <dependency>
     <artifactId>mongodbcontainer-addon</artifactId>
     <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
-    <version>0.9.3-beta.RELEASE</version>
+    <version>0.9.5.1-beta</version>
 </dependency>
 ```
 

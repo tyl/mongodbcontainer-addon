@@ -20,10 +20,8 @@ import org.springframework.data.mongodb.core.query.Query;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
@@ -142,6 +140,21 @@ public class MongoContainerTest {
         mc.removeAllContainerFilters();
 
         assertEquals(7, mc.size());
+
+
+    }
+
+    /**
+     * Version 0.9.5 raised an exception
+     * when containsId() was called twice
+     */
+    @Test
+    public void testContainsId() {
+        MongoContainer<Customer> mc = builder().build();
+        ObjectId firstId = mc.firstItemId();
+
+        mc.containsId(firstId);
+        mc.containsId(firstId);
 
 
     }

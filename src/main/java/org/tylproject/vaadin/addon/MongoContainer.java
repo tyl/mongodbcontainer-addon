@@ -402,7 +402,8 @@ public class MongoContainer<Bean>
     @Override
     public boolean containsId(Object itemId) {
         assertIdValid(itemId);
-        return mongoOps.exists(query.addCriteria(where(ID).is(itemId)), beanClass);
+        Query q = makeBaseQuery().addCriteria(where(ID).is(itemId));
+        return mongoOps.exists(q, beanClass);
     }
 
     /**

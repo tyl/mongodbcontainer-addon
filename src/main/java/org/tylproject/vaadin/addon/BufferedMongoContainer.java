@@ -248,14 +248,16 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
     }
 
     /**
-     * Notify the container that the given item has been updated
+     * Notify the container that the given itemId will be updated
      *
      * @param itemId
-     * @param updatedItem
      * @throws java.lang.IllegalArgumentException if the itemId does not exist
      *           or it has been scheduled for removal
+     *
+     * @return the item that will be updated
      */
-    public void notifyItemUpdated(ObjectId itemId, BeanItem<Bean> updatedItem) {
+    public BeanItem<Bean> updateItem(ObjectId itemId) {
+
         if (this.removedItems.containsKey(itemId))
             throw new IllegalArgumentException("item "+itemId+" was removed");
         if (!this.newItems.containsKey(itemId)) {
@@ -263,9 +265,16 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
                 throw new IllegalArgumentException("item " + itemId + " was removed");
             }
 
+            page.setInvalid();
+
+            BeanItem<Bean> updatedItem = getItem(itemId);
             this.updatedItems.put(itemId, updatedItem);
+
+            return updatedItem;
+        } else {
+            return this.newItems.get(itemId);
         }
-       page.setInvalid();
+
     }
 
     @Override

@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
 
     <artifactId>mongodbcontainer-addon</artifactId>
     <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
-    <version>0.9.5.2-beta-SNAPSHOT</version>
-    <name>MongoDB Container Addon</name>
+    <version>0.9.5.2-beta</version>
+    <name>MongoDB Container Add-on</name>
     <organization><name>Tyl Consulting s.a.s.</name></organization>
 
+
+	<scm>
+		<url>git://github.com/tyl/mongodbcontainer-addon.git</url>
+		<connection>scm:git:git://github.com/tyl/mongodbcontainer-addon.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com:/tyl/mongodbcontainer-addon.git</developerConnection>
+		<tag>v0.9.5.2-beta</tag>
+	</scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

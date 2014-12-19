@@ -371,10 +371,8 @@ public class MongoContainer<Bean>
     @Override
     @Deprecated
     public List<ObjectId> getItemIds() {
-        throw new UnsupportedOperationException("this expensive operation is unsupported");
-//        Query q = Query.query(criteria).fields().include(ID);
-//        List<BeanId> beans = mongoOps.find(q, beanClass);
-//        return new PropertyList<Id,Bean>(beans, beanDescriptor, "id");
+        log.info("this expensive operation should be avoided");
+        return getItemIds(0, this.size());
     }
 
     @Override

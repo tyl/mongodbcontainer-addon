@@ -5,8 +5,8 @@
 
     <artifactId>mongodbcontainer-addon</artifactId>
     <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
-    <version>0.9.5.3-beta-SNAPSHOT</version>
-    <name>MongoDB Container Add-on</name>
+    <version>0.9.5.4-beta-SNAPSHOT</version>
+    <name>MongoDB Container Addon</name>
     <organization><name>Tyl Consulting s.a.s.</name></organization>
 
 
@@ -14,7 +14,7 @@
 		<url>git://github.com/tyl/mongodbcontainer-addon.git</url>
 		<connection>scm:git:git://github.com/tyl/mongodbcontainer-addon.git</connection>
 		<developerConnection>scm:git:ssh://git@github.com:/tyl/mongodbcontainer-addon.git</developerConnection>
-		<tag>v0.9.5.2-beta</tag>
+		<tag>v</tag>
 	</scm>
 
     <properties>

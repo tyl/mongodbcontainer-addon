@@ -20,6 +20,7 @@ import org.springframework.data.mongodb.core.query.Query;
 
 import java.util.List;
 
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.*;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
@@ -210,6 +211,12 @@ public class MongoContainerTest {
                    where("firstName").is("Leroy")
                     .and("lastName") .is("Jenkins")), Customer.class).isEmpty()
         );
+    }
+
+    @Test
+    public void testGetItemIds() {
+        final MongoContainer<Customer> mc = builder().build();
+        assertEquals(mc.size(), mc.getItemIds().size());
     }
 
     @Test

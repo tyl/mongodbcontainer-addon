@@ -119,15 +119,16 @@ BeanItem<Person> item = mongoContainer.getItem(itemId);
 // display the item through a form UI
 ...
 ```
-#### Notifying the Buffered Container of the Updates
+#### Updating Items in the Buffered Container
 
-A buffered container must be notified when you add or update elements using a specific method. This is because the internal state must be kept in sync with users modifications. 
+A buffered container must be notified when you want to update elements using a specific method. This is because the Container lazily load items; thus, it cannot make assumptions on the state of the items that you might request, and it returns a new Item instance each time you request one. If you want to "fix" an Item instance, you can use the `updateItem(itemId)` API:
 
 ```java
+mongoContainer.updateItem(itemId);
 // display the item through a form UI
 ...
-// then, on form close
-mongoContainer.notifyItemUpdated(updatedItemId,updatedItemId)`.
+// then commit when you are done:
+mongoContainer.commit();
 ```
 NOTE: This is not necessary for non-buffered containers, as the items can be refreshed from the mongo storage directly (e.g., using `table.refreshRowCache()`); in fact, on non-buffered containers the method is unavailable.
 

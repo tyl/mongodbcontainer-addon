@@ -171,7 +171,7 @@ public class MongoContainerTest {
         mc.sort(columns, ascending);
 
         Object id1 = mc.firstItemId();
-        assertEquals(mc.getItem(id1).getBean().getLastName(), "Scott");
+        assertEquals("Carlson", mc.getItem(id1).getBean().getLastName());
 
         for (int i = 0; i < mc.size(); i++) {
             Object id = mc.getIdByIndex(i+1);

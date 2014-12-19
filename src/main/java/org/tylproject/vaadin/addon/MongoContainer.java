@@ -285,7 +285,8 @@ public class MongoContainer<Bean>
      * @return a cursor for the query object of this Container instance
      */
     protected DBCursor cursor() {
-        DBObject criteriaObject = query.getQueryObject();
+        Query q = makeBaseQuery();
+        DBObject criteriaObject = q.getQueryObject();
 
         DBObject projectionObject = new BasicDBObject(ID, true);
 
@@ -296,7 +297,7 @@ public class MongoContainer<Bean>
         DBCursor cursor = dbCollection.find(criteriaObject, projectionObject);
 
         if (this.baseSort != null || this.sort != null) {
-            DBObject sortObject = this.query.getSortObject();
+            DBObject sortObject = q.getSortObject();
             cursor.sort(sortObject);
         }
 
@@ -623,6 +624,7 @@ public class MongoContainer<Bean>
         appliedCriteria.add(c);
         appliedFilters.add(filter);
         page.setInvalid();
+        fireItemSetChange();
     }
 
     @Override
@@ -632,6 +634,7 @@ public class MongoContainer<Bean>
         for (Filter f: appliedFilters) {
             addContainerFilter(f);
         }
+        fireItemSetChange();
     }
 
     @Override
@@ -639,6 +642,7 @@ public class MongoContainer<Bean>
         resetQuery();
         applySort(this.query, this.sort);
         page.setInvalid();
+        fireItemSetChange();
     }
 
     protected void resetQuery() {
@@ -689,6 +693,7 @@ public class MongoContainer<Bean>
         this.sort = result;
 
         refresh();
+        fireItemSetChange();
 
     }
 

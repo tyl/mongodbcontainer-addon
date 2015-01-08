@@ -7,6 +7,7 @@ import junit.framework.Assert;
 import junit.framework.TestCase;
 import org.springframework.data.domain.Sort;
 import org.tylproject.data.mongo.Customer;
+import org.tylproject.data.mongo.Person;
 import org.tylproject.vaadin.addon.MongoContainer;
 
 import org.bson.types.ObjectId;
@@ -114,9 +115,8 @@ public class MongoContainerTest {
 
     // fetch using Container
     @Test
-    public void testLoadItems() {
+    public void testContainsFilteredItem() {
 
-        final Criteria crit = where("firstName").regex(".*d.*");
 
         final MongoContainer<Customer> mc =
                 builder().build();
@@ -124,12 +124,12 @@ public class MongoContainerTest {
         assertEquals(7, mc.size());
 
 
-        mc.addContainerFilter(new SimpleStringFilter("firstName", "d", false, false));
+        mc.addContainerFilter(new SimpleStringFilter("firstName", "i", false, false));
 
-        List<Customer> bs = mongoOps.find(query(crit), beanClass);
+        List<Customer> bs = mongoOps.find(query(where("firstName").regex(".*i.*")), beanClass);
 
 
-        assertEquals(1, mc.size());
+        assertEquals(5, mc.size());
 
 
         for (Customer c: bs) {
@@ -141,7 +141,28 @@ public class MongoContainerTest {
         mc.removeAllContainerFilters();
 
         assertEquals(7, mc.size());
+    }
 
+    @Test
+    public void testFilterList() {
+        final Criteria crit = where("firstName").regex(".*i.*");
+
+        final MongoContainer<Customer> mc =
+                builder().build();
+
+        assertEquals(7, mc.size());
+
+        List<Customer> bs = mongoOps.find(query(where("firstName").regex(".*i.*")), beanClass);
+
+        mc.addContainerFilter(new SimpleStringFilter("firstName", "i", false, false));
+
+        ObjectId itemId = mc.firstItemId();
+        int i = 0;
+        do {
+            BeanItem<Customer> item = mc.getItem(itemId);
+            assertEquals(bs.get(i++), item.getBean());
+            itemId = mc.nextItemId(itemId);
+        } while (itemId != null);
 
     }
 
@@ -171,7 +192,7 @@ public class MongoContainerTest {
         mc.sort(columns, ascending);
 
         Object id1 = mc.firstItemId();
-        assertEquals("Carlson", mc.getItem(id1).getBean().getLastName());
+        assertEquals("Scott", mc.getItem(id1).getBean().getLastName());
 
         for (int i = 0; i < mc.size(); i++) {
             Object id = mc.getIdByIndex(i+1);
@@ -203,8 +224,8 @@ public class MongoContainerTest {
     @Test
     public void testAddItem() {
         final MongoContainer<Customer> mc = builder().build();
-        final Customer apancotti = new Customer("Leroy", "Jenkins");
-        mc.addEntity(apancotti);
+        final Customer ljenkins = new Customer("Leroy", "Jenkins");
+        mc.addEntity(ljenkins);
         assertFalse(
             mongoOps.find(
                 Query.query(

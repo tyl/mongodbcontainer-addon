@@ -50,4 +50,8 @@ public class Customer {
 				firstName, lastName);
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		return obj instanceof Customer && ((Customer)obj).getId().equals(this.getId());
+	}
 }

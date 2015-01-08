@@ -285,7 +285,7 @@ public class MongoContainer<Bean>
      * @return a cursor for the query object of this Container instance
      */
     protected DBCursor cursor() {
-        Query q = makeBaseQuery();
+        final Query q = this.query;
         DBObject criteriaObject = q.getQueryObject();
 
         DBObject projectionObject = new BasicDBObject(ID, true);

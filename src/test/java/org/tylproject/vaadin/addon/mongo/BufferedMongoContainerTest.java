@@ -21,33 +21,7 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 /**
  * Created by evacchi on 12/11/14.
  */
-public class BufferedMongoContainerTest {
-
-    private final MongoTemplate mongoOps;
-    private final Class<Customer> beanClass = Customer.class;
-
-    public BufferedMongoContainerTest() throws Exception {
-        this.mongoOps = new MongoTemplate(new MongoClient(), "database");
-    }
-
-    public MongoContainer.Builder<Customer> builder() {
-        return MongoContainer.Builder.forEntity(beanClass,mongoOps)
-                .withPageSize(3)
-                .sortedBy(new Sort("firstName"));
-    }
-
-    @Before
-    public void setupDatabase() throws Exception {
-        // save some customers
-        mongoOps.save(new Customer("Austin", "Carlson"));
-        mongoOps.save(new Customer("Callie", "Scott"));
-        mongoOps.save(new Customer("Cordelia", "McDaniel"));
-        mongoOps.save(new Customer("Herbert", "Harris"));
-        mongoOps.save(new Customer("Jimmy", "Simpson"));
-        mongoOps.save(new Customer("Keith", "George"));
-        mongoOps.save(new Customer("Susan", "Long"));
-    }
-
+public class BufferedMongoContainerTest extends BaseTest {
 
     @Test
     public void testRemoveFirstItem() {

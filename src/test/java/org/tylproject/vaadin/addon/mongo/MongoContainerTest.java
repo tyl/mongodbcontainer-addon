@@ -2,6 +2,9 @@ package org.tylproject.vaadin.addon.mongo;
 
 import com.mongodb.MongoClient;
 import com.vaadin.data.util.BeanItem;
+import com.vaadin.data.util.filter.And;
+import com.vaadin.data.util.filter.Not;
+import com.vaadin.data.util.filter.Or;
 import com.vaadin.data.util.filter.SimpleStringFilter;
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -33,40 +36,7 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 //@RunWith(SpringJUnit4ClassRunner.class)
 //@SpringApplicationConfiguration(classes = SampleMongoApplication.class)
 
-public class MongoContainerTest {
-    private final MongoOperations mongoOps;
-    private final Class<Customer> beanClass = Customer.class;
-
-    public MongoContainerTest() throws Exception {
-        this.mongoOps = new MongoTemplate(new MongoClient(), "database");
-    }
-
-    public MongoContainer.Builder<Customer> builder() {
-        return MongoContainer.Builder.forEntity(beanClass,mongoOps)
-                .withPageSize(3)
-                .sortedBy(new Sort("firstName"));
-    }
-
-    @Before
-    public void setupDatabase() throws Exception {
-        // save some customers
-        mongoOps.save(new Customer("Austin", "Carlson"));
-        mongoOps.save(new Customer("Austin", "Scott"));
-        mongoOps.save(new Customer("Cordelia", "McDaniel"));
-        mongoOps.save(new Customer("Herbert", "Harris"));
-        mongoOps.save(new Customer("Jimmy", "Simpson"));
-        mongoOps.save(new Customer("Keith", "George"));
-        mongoOps.save(new Customer("Susan", "Long"));
-    }
-
-
-
-    @After
-    public void teardownDatabase() {
-        for (Customer c: mongoOps.findAll(Customer.class))
-            mongoOps.remove(c);
-    }
-
+public class MongoContainerTest extends BaseTest {
     @Test
     public void testProperties() {
         System.out.println("propids"+builder().build().getContainerPropertyIds());
@@ -113,58 +83,6 @@ public class MongoContainerTest {
 
     }
 
-    // fetch using Container
-    @Test
-    public void testContainsFilteredItem() {
-
-
-        final MongoContainer<Customer> mc =
-                builder().build();
-
-        assertEquals(7, mc.size());
-
-
-        mc.addContainerFilter(new SimpleStringFilter("firstName", "i", false, false));
-
-        List<Customer> bs = mongoOps.find(query(where("firstName").regex(".*i.*")), beanClass);
-
-
-        assertEquals(5, mc.size());
-
-
-        for (Customer c: bs) {
-            System.out.println(c);
-            assertEquals(true, mc.containsId(c.getId()));
-        }
-
-
-        mc.removeAllContainerFilters();
-
-        assertEquals(7, mc.size());
-    }
-
-    @Test
-    public void testFilterList() {
-        final Criteria crit = where("firstName").regex(".*i.*");
-
-        final MongoContainer<Customer> mc =
-                builder().build();
-
-        assertEquals(7, mc.size());
-
-        List<Customer> bs = mongoOps.find(query(where("firstName").regex(".*i.*")), beanClass);
-
-        mc.addContainerFilter(new SimpleStringFilter("firstName", "i", false, false));
-
-        ObjectId itemId = mc.firstItemId();
-        int i = 0;
-        do {
-            BeanItem<Customer> item = mc.getItem(itemId);
-            assertEquals(bs.get(i++), item.getBean());
-            itemId = mc.nextItemId(itemId);
-        } while (itemId != null);
-
-    }
 
     /**
      * Version 0.9.5 raised an exception

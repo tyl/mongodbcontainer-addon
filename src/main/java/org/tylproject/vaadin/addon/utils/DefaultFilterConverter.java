@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
@@ -81,18 +82,17 @@ public class DefaultFilterConverter implements FilterConverter {
     private Criteria convertOrFilter(Or f, boolean negated) {
         Collection<Container.Filter> filterList = f.getFilters();
         if (filterList.isEmpty()) {
-            throw new IllegalStateException("filter list in And is empty");
+            throw new IllegalStateException("filter list in Or is empty");
         }
         if (filterList.size() == 1) {
             return convert(filterList.iterator().next());
         }
         List<Criteria> cs = convertAll(filterList);
-        Criteria c = cs.get(0);
-        if (negated)
-            c.norOperator(cs.subList(1, cs.size()).toArray(new Criteria[0]));
-        else
-            c.orOperator(cs.subList(1, cs.size()).toArray(new Criteria[0]));
-        return c;
+        if (negated) {
+            return new Criteria().norOperator(cs.toArray(new Criteria[0]));
+        } else {
+            return new Criteria().orOperator(cs.toArray(new Criteria[0]));
+        }
     }
 
     private Criteria convertAndFilter(And f, boolean negated) {
@@ -108,9 +108,7 @@ public class DefaultFilterConverter implements FilterConverter {
             return convert(filterList.iterator().next());
         }
         List<Criteria> cs = convertAll(filterList);
-        Criteria c = cs.get(0);
-        c.andOperator(cs.subList(1, cs.size()).toArray(new Criteria[0]));
-        return c;
+        return new Criteria().andOperator(cs.toArray(new Criteria[0]));
     }
 
     private Criteria convertSimpleStringFilter(SimpleStringFilter sf) {

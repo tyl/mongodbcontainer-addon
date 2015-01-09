@@ -22,6 +22,8 @@
 import org.bson.types.ObjectId;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * A bean factory that reflectively reads and injects
@@ -48,9 +50,9 @@ public class DefaultBeanFactory<T> implements BeanFactory<T> {
     public ObjectId injectId(T target) {
         try {
             ObjectId id = new ObjectId();
-            getIdField().set(target, id);
+            setIdValue(target, id);
             return id;
-        } catch (IllegalAccessException ex) { throw new UnsupportedOperationException(ex); }
+        } catch (ReflectiveOperationException ex) { throw new UnsupportedOperationException(ex); }
     }
 
     /**
@@ -83,8 +85,8 @@ public class DefaultBeanFactory<T> implements BeanFactory<T> {
     @Override
     public ObjectId getId(T target) {
         try {
-            return (ObjectId) getIdField().get(target);
-        } catch (IllegalAccessException ex) {
+            return getIdValue(target);
+        } catch (ReflectiveOperationException ex) {
             throw new UnsupportedOperationException(ex);
         }
     }
@@ -94,11 +96,41 @@ public class DefaultBeanFactory<T> implements BeanFactory<T> {
      *          if no field is annotated using
      *          {@link org.springframework.data.annotation.Id}
      */
-    protected Field getIdField() {
+    protected ObjectId getIdValue(T target) throws ReflectiveOperationException {
+
         for (Field f : beanClass.getDeclaredFields()) {
             if (f.isAnnotationPresent(org.springframework.data.annotation.Id.class)) {
                 f.setAccessible(true);
-                return f;
+                return (ObjectId) f.get(target);
+            }
+        }
+        for (Method m: beanClass.getMethods()) {
+            if (m.getName().equals("getId")) {
+                return (ObjectId) m.invoke(target);
+            }
+        }
+        throw new UnsupportedOperationException("no id field was found");
+    }
+
+
+    /**
+     * @throws java.lang.UnsupportedOperationException
+     *          if no field is annotated using
+     *          {@link org.springframework.data.annotation.Id}
+     */
+    protected void setIdValue(T target, ObjectId value) throws ReflectiveOperationException {
+
+        for (Field f : beanClass.getDeclaredFields()) {
+            if (f.isAnnotationPresent(org.springframework.data.annotation.Id.class)) {
+                f.setAccessible(true);
+                f.set(target, value);
+                return;
+            }
+        }
+        for (Method m: beanClass.getDeclaredMethods()) {
+            if (m.getName().equals("setId")) {
+                m.invoke(target, value);
+                return;
             }
         }
         throw new UnsupportedOperationException("no id field was found");

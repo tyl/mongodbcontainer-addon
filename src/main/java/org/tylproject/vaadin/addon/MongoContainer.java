@@ -620,7 +620,11 @@ public class MongoContainer<Bean>
     @Override
     public void addContainerFilter(Filter filter) throws UnsupportedFilterException {
         Criteria c = filterConverter.convert(filter);
-        this.query.addCriteria(c);
+        if (this.query.getQueryObject().toMap().isEmpty()) {
+            this.query = new Query(c);
+        } else {
+            this.query.addCriteria(c);
+        }
         appliedCriteria.add(c);
         appliedFilters.add(filter);
         page.setInvalid();

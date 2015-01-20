@@ -274,6 +274,10 @@ public class MongoContainer<Bean>
 
 
         List<Object> allProps = new ArrayList<Object>(simpleProperties.keySet());
+
+        // remove "class" pseudo-property for compliance with BeanItem
+        allProps.remove("class");
+
         this.allProperties = Collections.unmodifiableList(allProps);
         allProps.addAll(nestedProperties.keySet());
 
@@ -342,6 +346,7 @@ public class MongoContainer<Bean>
     }
 
     public BeanItem<Bean> getItem(Object o) {
+        if (o == null) return null;
         assertIdValid(o);
         final Bean document = mongoOps.findById(o, beanClass);
         // document was not found in the actual DB
@@ -400,6 +405,7 @@ public class MongoContainer<Bean>
 
     @Override
     public boolean containsId(Object itemId) {
+        if (itemId == null) return false;
         assertIdValid(itemId);
         Query q = makeBaseQuery().addCriteria(where(ID).is(itemId));
         return mongoOps.exists(q, beanClass);
@@ -461,6 +467,8 @@ public class MongoContainer<Bean>
 
     @Override
     public int indexOfId(Object itemId) {
+        if (itemId == null) return -1;
+
         ObjectId oid = assertIdValid(itemId);
 
         // for the principle of locality,
@@ -541,12 +549,16 @@ public class MongoContainer<Bean>
     }
     @Override
     public boolean isFirstId(Object itemId) {
+        if (itemId == null) return false;
+
         assertIdValid(itemId);
         return itemId.equals(firstItemId());
     }
 
     @Override
     public boolean isLastId(Object itemId) {
+        if (itemId == null) return false;
+
         assertIdValid(itemId);
         return itemId.equals(lastItemId());
     }

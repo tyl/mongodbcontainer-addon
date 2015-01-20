@@ -98,8 +98,9 @@ public class Page<T> {
     }
 
 
+
     public List<T> toImmutableList() {
-        return Collections.unmodifiableList(Arrays.asList(values));
+        return Collections.unmodifiableList(Arrays.asList(values).subList(0, maxValidIndex-offset+1));
     }
 
     public void setInvalid() {

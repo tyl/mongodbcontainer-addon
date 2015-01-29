@@ -242,6 +242,9 @@ public class MongoContainer<Bean>
 
     protected final List<Object> allProperties;
 
+    private Object parentPropertyId = "parent";
+
+
     MongoContainer(Builder<Bean> bldr) {
         this.criteria = bldr.mongoCriteria;
         this.baseSort = bldr.sort;
@@ -643,22 +646,34 @@ public class MongoContainer<Bean>
         fireItemSetChange();
     }
 
+    public void addAllContainerFilters(Collection<? extends Filter> filters) {
+        for (Filter f : filters) this.addContainerFilter(f);
+    }
+
     @Override
     public void removeContainerFilter(Filter filter) {
         appliedFilters.remove(filter);
-        removeAllContainerFilters();
-        for (Filter f: appliedFilters) {
-            addContainerFilter(f);
-        }
+        List<Filter> backupFilters = new ArrayList<Filter>(appliedFilters);
+
+        // the only way to re-build the query is clearing it and rebuild it
+        // so, we clear the appliedFilters list
+        doRemoveAllContainerFilters();
+
+        // and we add them back
+        this.addAllContainerFilters(backupFilters);
         fireItemSetChange();
     }
 
     @Override
     public void removeAllContainerFilters() {
+        doRemoveAllContainerFilters();
+        fireItemSetChange();
+    }
+
+    protected void doRemoveAllContainerFilters() {
         resetQuery();
         applySort(this.query, this.sort);
         page.setInvalid();
-        fireItemSetChange();
     }
 
     protected void resetQuery() {
@@ -727,5 +742,4 @@ public class MongoContainer<Bean>
     public Collection<?> getSortableContainerPropertyIds() {
         return getContainerPropertyIds();
     }
-
 }

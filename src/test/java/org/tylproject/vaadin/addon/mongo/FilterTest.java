@@ -1,6 +1,7 @@
 package org.tylproject.vaadin.addon.mongo;
 
 import com.mongodb.MongoClient;
+import com.vaadin.data.Container;
 import com.vaadin.data.util.BeanItem;
 import com.vaadin.data.util.filter.And;
 import com.vaadin.data.util.filter.Not;
@@ -17,9 +18,12 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.tylproject.data.mongo.Customer;
 import org.tylproject.vaadin.addon.MongoContainer;
 
+import java.util.Collection;
 import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
@@ -128,6 +132,58 @@ public class FilterTest extends BaseTest {
         ObjectId itemId = mc.firstItemId();
 
         // should not raise error
+    }
+
+    @Test
+    public void testAddMoreFilters() {
+        final MongoContainer<Customer> mc =
+                builder().build();
+
+
+        Container.Filter f1 = new SimpleStringFilter("firstName", "i", false, false);
+        Container.Filter f2 = new SimpleStringFilter("lastName", "x", false, false);
+
+        mc.addContainerFilter(f1);
+        mc.addContainerFilter(f2);
+
+        Collection<Container.Filter> filters = mc.getContainerFilters();
+        assertEquals(2, filters.size());
+        assertTrue(filters.contains(f1));
+        assertTrue(filters.contains(f2));
+
+    }
+
+
+    @Test
+    public void testRemoveFilters() {
+        final MongoContainer<Customer> mc =
+                builder().build();
+
+
+        Container.Filter f1 = new SimpleStringFilter("firstName", "i", false, false);
+        Container.Filter f2 = new SimpleStringFilter("lastName", "x", false, false);
+
+        mc.addContainerFilter(f1);
+        mc.addContainerFilter(f2);
+
+        {
+            mc.removeContainerFilter(f1);
+            Collection<Container.Filter> filters = mc.getContainerFilters();
+
+            assertEquals(1, filters.size());
+            assertFalse(filters.contains(f1));
+            assertTrue(filters.contains(f2));
+        }
+
+
+        {
+            mc.removeContainerFilter(f2);
+            Collection<Container.Filter> filters = mc.getContainerFilters();
+
+            assertEquals(0, filters.size());
+            assertFalse(filters.contains(f1));
+            assertFalse(filters.contains(f2));
+        }
     }
 
 

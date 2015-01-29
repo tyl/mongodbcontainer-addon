@@ -53,7 +53,7 @@ public class DefaultFilterConverter implements FilterConverter {
             return convertOrFilter((Or) f, negated);
         }
 
-        throw new UnsupportedOperationException("Unsupported Filter "+f);
+        throw new UnsupportedFilterException("Unsupported Filter "+f);
     }
 
     private Criteria convertCompareFilter(Compare f) {
@@ -97,7 +97,7 @@ public class DefaultFilterConverter implements FilterConverter {
 
     private Criteria convertAndFilter(And f, boolean negated) {
         if (negated)
-            throw new UnsupportedOperationException("Not(And) not supported in " +
+            throw new UnsupportedFilterException("Not(And) not supported in " +
                     "mongo");
 
         Collection<Container.Filter> filterList = f.getFilters();

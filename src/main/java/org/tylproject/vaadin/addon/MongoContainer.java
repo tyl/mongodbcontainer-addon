@@ -103,6 +103,7 @@ public class MongoContainer<Bean>
         private boolean hasCustomPropertyList = false;
         private BeanFactory<BT> beanFactory ;
         private FilterConverter filterConverter = new DefaultFilterConverter();
+        public String parentProperty;
 
         /**
          * Initializes and return a builder for a MongoContainer
@@ -210,6 +211,13 @@ public class MongoContainer<Bean>
             mc.fetchPage(0, pageSize);
             return mc;
         }
+
+        public HierarchicalMongoContainer<BT> buildHierarchical(String id) {
+            this.parentProperty = id;
+            final HierarchicalMongoContainer<BT> mc = new HierarchicalMongoContainer<BT>(this);
+            mc.fetchPage(0, pageSize);
+            return mc;
+        }
     }
 
     protected static final String ID = "_id";
@@ -241,8 +249,6 @@ public class MongoContainer<Bean>
     protected final Map<String, Class<?>> nestedProperties ;
 
     protected final List<Object> allProperties;
-
-    private Object parentPropertyId = "parent";
 
 
     MongoContainer(Builder<Bean> bldr) {
@@ -292,8 +298,18 @@ public class MongoContainer<Bean>
      * @return a cursor for the query object of this Container instance
      */
     protected DBCursor cursor() {
+        return cursor(null);
+    }
+
+    /**
+     * @return a cursor with the given optional params
+     */
+    protected DBCursor cursor(DBObject additionalCriteria) {
         final Query q = this.query;
         DBObject criteriaObject = q.getQueryObject();
+        if (additionalCriteria != null) {
+            criteriaObject.putAll(additionalCriteria);
+        }
 
         DBObject projectionObject = new BasicDBObject(ID, true);
 

@@ -132,7 +132,7 @@ public class Page<T> {
      */
     public List<T> subList(int startIndex, int numberOfItems) {
         List<T> idList = this.toImmutableList(); // indexed from 0, as required by the interface contract
-        return idList.subList(startIndex-offset, Math.min(numberOfItems, maxValidIndex));
+        return idList.subList(startIndex-offset, Math.min(startIndex-offset+numberOfItems, maxValidIndex));
     }
 
 }

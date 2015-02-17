@@ -20,7 +20,7 @@ With Maven, add this to your `pom.xml`
 <dependency>
     <artifactId>mongodbcontainer-addon</artifactId>
     <groupId>org.tylproject.vaadin.addon.mongodbcontainer</groupId>
-    <version>0.9.5.1-beta</version>
+    <version>1.0</version>
 </dependency>
 ```
 

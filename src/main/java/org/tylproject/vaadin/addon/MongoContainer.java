@@ -454,6 +454,7 @@ public class MongoContainer<Bean>
     public ObjectId addEntity(Bean target) {
         mongoOps.save(target);
         refresh();
+        fireItemSetChange();
         return this.beanFactory.getId(target);
     }
 

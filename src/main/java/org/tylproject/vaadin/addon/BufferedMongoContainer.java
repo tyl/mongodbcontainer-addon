@@ -306,6 +306,7 @@ public class BufferedMongoContainer<Bean> extends MongoContainer<Bean>
 
         ObjectId id = beanFactory.injectId(target);
         newItems.put(id, beanItem);
+        fireItemSetChange();
         return id;
     }
 

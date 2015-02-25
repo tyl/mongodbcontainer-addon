@@ -97,10 +97,11 @@ public class MongoContainer<Bean>
         private final Class<BT> beanClass;
         private Sort sort;
         private int pageSize = DEFAULT_PAGE_SIZE;
-        private LinkedHashMap<String,Class<?>> simpleProperties = new LinkedHashMap<String, Class<?>>();
-        private LinkedHashMap<String,Class<?>> nestedProperties = new LinkedHashMap<String, Class<?>>();
+        private Map<String, Class<?>> simpleProperties = new LinkedHashMap<String, Class<?>>();
+        private Map<String, Class<?>> nestedProperties = new LinkedHashMap<String, Class<?>>();
 
         private boolean hasCustomPropertyList = false;
+        private boolean hasNestedPropertyList = false;
         private BeanFactory<BT> beanFactory ;
         private FilterConverter filterConverter = new DefaultFilterConverter();
         public String parentProperty;
@@ -165,6 +166,12 @@ public class MongoContainer<Bean>
             simpleProperties.put(id, type);
             return this;
         }
+        /**
+         * adds a property with the given property id and of the given type
+         */
+        public Builder<BT> withProperty(String id) {
+            return withProperty(id, BeanUtils.findPropertyType(id, beanClass));
+        }
 
         /**
          * adds a nested property of the given type.
@@ -183,7 +190,7 @@ public class MongoContainer<Bean>
          *
          */
         public Builder<BT> withNestedProperty(String id, Class<?> type) {
-            hasCustomPropertyList = true;
+            hasNestedPropertyList = true;
             nestedProperties.put(id, type);
             return this;
         }
@@ -266,18 +273,19 @@ public class MongoContainer<Bean>
         this.beanFactory = bldr.beanFactory;
 
         if (bldr.hasCustomPropertyList) {
-            this.simpleProperties = Collections.unmodifiableMap(bldr
-                    .simpleProperties);
-            this.nestedProperties = Collections.unmodifiableMap(bldr.nestedProperties);
-
+            this.simpleProperties = Collections.unmodifiableMap(bldr.simpleProperties);
         } else {
-
-            // otherwise, default to non-nested
+            // otherwise, get them via reflection
             this.simpleProperties = new LinkedHashMap<String, Class<?>>();
             PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(beanClass);
             for (PropertyDescriptor d: descriptors) {
                 this.simpleProperties.put(d.getName(), d.getPropertyType());
             }
+        }
+
+        if (bldr.hasNestedPropertyList) {
+            this.nestedProperties = Collections.unmodifiableMap(bldr.nestedProperties);
+        } else {
             nestedProperties = Collections.emptyMap();
         }
 

@@ -127,7 +127,7 @@ public class DefaultBeanFactory<T> implements BeanFactory<T> {
                 return;
             }
         }
-        for (Method m: beanClass.getDeclaredMethods()) {
+        for (Method m: beanClass.getMethods()) {
             if (m.getName().equals("setId")) {
                 m.invoke(target, value);
                 return;

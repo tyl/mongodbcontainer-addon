@@ -19,10 +19,8 @@ package org.tylproject.data.mongo;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 
-public class Customer {
+public class Customer extends BaseCustomer {
 
-	@Id
-	private ObjectId id;
 
 	private String firstName;
 	private String lastName;
@@ -31,10 +29,6 @@ public class Customer {
 		this.firstName = firstName;
 		this.lastName = lastName;
 	}
-
-    public ObjectId getId() {
-        return id;
-    }
 
     public String getFirstName() {
         return firstName;
@@ -46,7 +40,7 @@ public class Customer {
 
     @Override
 	public String toString() {
-		return String.format("Customer[id=%s, firstName='%s', lastName='%s']", id,
+		return String.format("Customer[id=%s, firstName='%s', lastName='%s']", getId(),
 				firstName, lastName);
 	}
 

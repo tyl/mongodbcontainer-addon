@@ -186,5 +186,20 @@ public class FilterTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testEmptyResultFilters() {
+        final MongoContainer<Customer> mc =
+                builder().build();
+
+
+        Container.Filter f1 = new SimpleStringFilter("firstName", "UNKNOWN-PERSON-ASDASD", false, false);
+
+        mc.addContainerFilter(f1);
+        assertEquals(0, mc.size());
+        mc.getItemIds(0,0);
+
+
+    }
+
 
 }

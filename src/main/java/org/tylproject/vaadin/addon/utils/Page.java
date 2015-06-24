@@ -100,7 +100,12 @@ public class Page<T> {
 
 
     public List<T> toImmutableList() {
-        return Collections.unmodifiableList(Arrays.asList(values).subList(0, maxValidIndex-offset+1));
+        if (values.length > 0) {
+            return Collections.unmodifiableList(Arrays.asList(values).subList(0, maxValidIndex-offset+1));
+        } else {
+            return Collections.emptyList();
+        }
+
     }
 
     public void setInvalid() {

@@ -3,10 +3,7 @@ package org.tylproject.vaadin.addon.mongo;
 import com.mongodb.MongoClient;
 import com.vaadin.data.Container;
 import com.vaadin.data.util.BeanItem;
-import com.vaadin.data.util.filter.And;
-import com.vaadin.data.util.filter.Not;
-import com.vaadin.data.util.filter.Or;
-import com.vaadin.data.util.filter.SimpleStringFilter;
+import com.vaadin.data.util.filter.*;
 import org.bson.types.ObjectId;
 import org.junit.After;
 import org.junit.Before;
@@ -17,6 +14,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.tylproject.data.mongo.Customer;
 import org.tylproject.vaadin.addon.MongoContainer;
+import org.tylproject.vaadin.addon.utils.DefaultFilterConverter;
 
 import java.util.Collection;
 import java.util.List;
@@ -132,6 +130,12 @@ public class FilterTest extends BaseTest {
         ObjectId itemId = mc.firstItemId();
 
         // should not raise error
+    }
+
+    @Test
+    public void testBetween() {
+        Criteria c = new DefaultFilterConverter().convert(new Between("foo", 1, 2));
+        assertEquals(c.getCriteriaObject().toString(), "{ \"foo\" : { \"$gte\" : 1 , \"$lte\" : 2}}");
     }
 
     @Test

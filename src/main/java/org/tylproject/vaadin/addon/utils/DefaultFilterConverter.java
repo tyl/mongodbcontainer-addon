@@ -51,9 +51,33 @@ public class DefaultFilterConverter implements FilterConverter {
         } else
         if (f instanceof Or) {
             return convertOrFilter((Or) f, negated);
+        } else
+        if (f instanceof Between) {
+            return convertBetweenFilter((Between) f, negated);
         }
 
         throw new UnsupportedFilterException("Unsupported Filter "+f);
+    }
+
+    private Criteria convertBetweenFilter(Between btw, boolean negated) {
+        Criteria c = Criteria.where(btw.getPropertyId().toString());
+        if (negated) {
+            if (btw.getStartValue() == null) {
+                return c.gt(btw.getEndValue());
+            } else if (btw.getEndValue() == null) {
+                return c.lt(btw.getStartValue());
+            } else
+                return c.lt(btw.getStartValue())
+                        .gt(btw.getEndValue());
+        } else {
+            if (btw.getStartValue() == null) {
+                return c.lte(btw.getEndValue());
+            } else if (btw.getEndValue() == null) {
+                return c.gte(btw.getStartValue());
+            } else
+                return c.gte(btw.getStartValue())
+                        .lte(btw.getEndValue());
+        }
     }
 
     private Criteria convertCompareFilter(Compare f) {

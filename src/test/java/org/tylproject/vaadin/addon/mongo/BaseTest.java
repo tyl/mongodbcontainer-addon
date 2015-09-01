@@ -46,9 +46,13 @@ public class BaseTest {
     }
 
 
-    @After
-    public void teardownDatabase() {
+    public void removeAll() {
         for (Customer c: mongoOps.findAll(Customer.class))
             mongoOps.remove(c);
+    }
+
+    @After
+    public void teardownDatabase() {
+        removeAll();
     }
 }

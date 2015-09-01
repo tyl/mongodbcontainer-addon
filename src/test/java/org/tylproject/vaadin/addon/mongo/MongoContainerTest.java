@@ -138,6 +138,23 @@ public class MongoContainerTest extends BaseTest {
         assertNotEquals(initSize, mc.size());
     }
 
+    @Test
+    public void testAddOnEmpty() {
+        removeAll();
+        
+        final MongoContainer<Customer> mc = 
+                MongoContainer.Builder.forEntity(beanClass,mongoOps).build();
+
+        final Customer ljenkins = new Customer("Leroy", "Jenkins");
+        mc.addEntity(ljenkins);
+        assertFalse(
+            mongoOps.find(
+                Query.query(
+                   where("firstName").is("Leroy")
+                    .and("lastName") .is("Jenkins")), Customer.class).isEmpty()
+        );
+
+    }
 
     @Test
     public void testAddItem() {
